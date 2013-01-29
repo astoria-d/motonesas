@@ -36,63 +36,64 @@ directive
     }
     |   DOT IDENT IDENT
     {
-        dprint("dir: .%s\n", $<str>2);
+        dprint("dir: .%s %s\n", $<str>2, $<str>3);
     }
     |   DOT IDENT STRING
     {
-        dprint("dir: .%s\n", $<str>2);
+        dprint("dir: .%s \"%s\"\n", $<str>2, $<str>3);
     }
-    |   DOT IDENT hex_chain
-    {
-        dprint("dir: .%s\n", $<str>2);
+    |   DOT IDENT {
+        dprint("dir: .%s ", $<str>2);
+    } hex_chain {
+        dprint("\n");
     }
     ;
 
 hex_chain
     :   HEX
     {
-        dprint("hex: %04x\n", $<hex>1);
+        dprint("%04x", $<hex>1);
     }
     |   hex_chain COMMA HEX
     {
-        dprint("hex: %04x\n", $<hex>3);
+        dprint(", %04x", $<hex>3);
     }
     ;
 
 
 instruction
-    :   mnemonic
-    |   mnemonic inst_param
-    ;
-
-mnemonic
-    :   IDENT
-    {
+    :   IDENT {
         dprint("mne: %s\n", $<str>1);
     }
+    |   IDENT {
+        dprint("mne: %s ", $<str>1);
+    } inst_param
     ;
 
 inst_param
     :   HEX
     {
-        dprint("hex: %04x\n", $<hex>1);
+        dprint("%04x\n", $<hex>1);
     }
     |   SHARP HEX
     {
-        dprint("hex: #%04x\n", $<hex>2);
+        dprint("#%04x\n", $<hex>2);
     }
     |   IDENT COMMA IDENT
     {
-        dprint("idt: %s, s\n", $<str>1, $<str>3);
+        dprint("%s, %s\n", $<str>1, $<str>3);
     }
     |   IDENT
     {
-        dprint("idt: %s\n", $<str>1);
+        dprint("%s\n", $<str>1);
     }
     ;
 
 label
     :   IDENT COLON
+    {
+        dprint("lbl: %s\n", $<str>1);
+    }
     ;
 
 %%
