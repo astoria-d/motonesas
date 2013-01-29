@@ -1,7 +1,9 @@
 
 BIN=motonesas
 
-OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o
+OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o \
+	 6502inst.o
+
 LIBS=-lfl
 CFLAGS=-g
 
@@ -21,8 +23,13 @@ nesas.tab.c: nesas.y
 nesas.yy.c: nesas.l
 	flex -o nesas.yy.c $<
 
+6502inst.o: 6502inst.c
+	./opcode-gen.sh
+	gcc $(CFLAGS) -c $<
+
 clean:
-	-rm $(OBJS) $(BIN) nesas.yy.c nesas.tab.c nesas.tab.h
+	-rm $(OBJS) $(BIN) nesas.yy.c nesas.tab.c nesas.tab.h \
+		opcode nesas.output
 
 
 
