@@ -3,6 +3,7 @@
 nesas.l ...
 */
 #include <stdio.h>
+#include "nesas.tab.h"
 
 #define MAXLEN  1024
 
@@ -16,12 +17,13 @@ DOL         [\$]
 SHARP       [#]
 COMMA       [\,]
 QUOTE       [\"]
+NL          [\n]
 
 ALPHA       [a-zA-Z_]
 DIGIT       [0-9]
 
 IDENT       {ALPHA}({ALPHA}|{DIGIT})*
-HEXDIGIT         [0-9a-fA-F]*
+HEXDIGIT         {DOL}[0-9a-fA-F]*
 
 WSPACE      [ \t\r]+
 
@@ -34,7 +36,8 @@ WSPACE      [ \t\r]+
                         break;
                 }
                 //dprint("\n");
-            }
+                return NL;
+        }
 
 {QUOTE} { 
             int ch=0;
@@ -59,16 +62,16 @@ WSPACE      [ \t\r]+
                     return -1;
                 }
             }
+            return STRING;
         }
 
-{IDENT}         { dprint("idt: %s\n", yytext); }
-{HEXDIGIT}        { dprint("hex: %s\n", yytext); }
-{DOT}           { dprint("dot: %s\n", yytext); }
-{COLON}         { dprint("col: %s\n", yytext); }
-{DOL}           { dprint("dol: %s\n", yytext); }
-{COMMA}           { dprint("com: %s\n", yytext); }
-{SHARP}           { dprint("shp: %s\n", yytext); }
-\n              { dprint("%s", yytext); }
+{IDENT}         { dprint("idt: %s\n", yytext); return IDENT; }
+{HEXDIGIT}        { dprint("hex: %s\n", yytext); return HEX; }
+{DOT}           { dprint("dot: %s\n", yytext); return DOT; }
+{COLON}         { dprint("col: %s\n", yytext); return COLON; }
+{COMMA}           { dprint("com: %s\n", yytext); return COMMA; }
+{SHARP}           { dprint("shp: %s\n", yytext); return SHARP; }
+{NL}              { dprint("%s", yytext); return NL; }
 
 {WSPACE}        {}
 .               {}

@@ -1,7 +1,7 @@
 
 BIN=motonesas
 
-OBJS=test.o tools.o nesas.yy.o
+OBJS=test.o tools.o nesas.tab.o nesas.yy.o
 LIBS=-lfl
 CFLAGS=-g
 
@@ -15,11 +15,14 @@ $(BIN): $(OBJS)
 .c.o: 
 	gcc $(CFLAGS) -c $<
 
+nesas.tab.c: nesas.y
+	bison -dv $<
+
 nesas.yy.c: nesas.l
 	flex -o nesas.yy.c $<
 
 clean:
-	rm $(OBJS) $(BIN) nesas.yy.c
+	-rm $(OBJS) $(BIN) nesas.yy.c nesas.tab.c nesas.tab.h
 
 
 

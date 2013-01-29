@@ -16,7 +16,8 @@ int main (int argc, char** argv) {
     }
     else
         fp=stdin;
-    lexmain(fp);
+    //lexmain(fp);
+    parsermain(fp);
 
     if (need_close)
         fclose(fp);
