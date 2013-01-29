@@ -1,7 +1,7 @@
 
 BIN=motonesas
 
-OBJS=test.o tools.o nesas.tab.o nesas.yy.o
+OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o
 LIBS=-lfl
 CFLAGS=-g
 

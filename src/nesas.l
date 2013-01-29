@@ -7,6 +7,9 @@ nesas.l ...
 
 #define MAXLEN  1024
 
+#if 1
+#define dprint(...)    
+#endif
 /*
 */
 %}
@@ -23,7 +26,7 @@ ALPHA       [a-zA-Z_]
 DIGIT       [0-9]
 
 IDENT       {ALPHA}({ALPHA}|{DIGIT})*
-HEXDIGIT         {DOL}[0-9a-fA-F]*
+HEXNUM         {DOL}[0-9a-fA-F]*
 
 WSPACE      [ \t\r]+
 
@@ -43,7 +46,7 @@ WSPACE      [ \t\r]+
             int ch=0;
             int chlen=0;
             char chbuf[MAXLEN+1];
-            memset(chbuf, 0, MAXLEN+1);
+            //memset(chbuf, 0, MAXLEN+1);
 
             while (1) {
                 ch=input();
@@ -55,7 +58,6 @@ WSPACE      [ \t\r]+
 
                 if (ch == '\"') {
                     chbuf[chlen-1] = '\0';
-                    //dprint(chbuf);
                     dprint("str: %s\n", chbuf);
                     break;
                 }
@@ -64,20 +66,38 @@ WSPACE      [ \t\r]+
                     return -1;
                 }
             }
+            yylval.str = strdup(chbuf);
+#warning    strdup must be deallocated!!!!!
+
             return STRING;
         }
 
-{IDENT}         { dprint("idt: %s\n", yytext); return IDENT; }
-{HEXDIGIT}        { dprint("hex: %s\n", yytext); return HEX; }
+{IDENT}         { 
+                    dprint("idt: %s\n", yytext); 
+                    yylval.str = strdup(yytext);
+#warning    strdup must be deallocated!!!!!
+
+                    return IDENT; 
+                }
+{HEXNUM}        { 
+                    dprint("hex: %s\n", yytext); 
+                    //yylval.hex = atoi((char*)yytext+1);
+                    sscanf ((char*)yytext+1, "%x", &yylval.hex );
+                    return HEX; 
+                }
+
 {DOT}           { dprint("dot: %s\n", yytext); return DOT; }
 {COLON}         { dprint("col: %s\n", yytext); return COLON; }
 {COMMA}           { dprint("com: %s\n", yytext); return COMMA; }
 {SHARP}           { dprint("shp: %s\n", yytext); return SHARP; }
 {NL}              { dprint("%s", yytext); return NL; }
-
 {WSPACE}        {}
-.               {}
 <<EOF>>         { /*dprint("end..!\n"); */return 0;}
+
+.               {
+                    perror("unknow character!!\n");
+                    return -1;
+                }
 %%
 /*
 other c code here.
