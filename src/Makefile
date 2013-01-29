@@ -10,7 +10,7 @@ all:	$(BIN)
 $(BIN): $(OBJS)
 	gcc -o $(BIN) $(OBJS) $(LIBS)
 	./$(BIN) < sample1-short.asm
-	./$(BIN) < sample1.asm
+#	./$(BIN) < sample1.asm
 
 .c.o: 
 	gcc $(CFLAGS) -c $<
