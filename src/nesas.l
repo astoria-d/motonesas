@@ -43,6 +43,8 @@ WSPACE      [ \t\r]+
             int ch=0;
             int chlen=0;
             char chbuf[MAXLEN+1];
+            memset(chbuf, 0, MAXLEN+1);
+
             while (1) {
                 ch=input();
                 if (chlen >= MAXLEN) {
@@ -54,7 +56,7 @@ WSPACE      [ \t\r]+
                 if (ch == '\"') {
                     chbuf[chlen-1] = '\0';
                     //dprint(chbuf);
-                    printf("str: %s\n", chbuf);
+                    dprint("str: %s\n", chbuf);
                     break;
                 }
                 if (ch == '\n') {
@@ -75,14 +77,14 @@ WSPACE      [ \t\r]+
 
 {WSPACE}        {}
 .               {}
-<<EOF>>         { /*printf("end..!\n"); */return 0;}
+<<EOF>>         { /*dprint("end..!\n"); */return 0;}
 %%
 /*
 other c code here.
 */
 
 int lexmain(FILE* fp) {
-    printf("lexmain...\n");
+    dprint("lexmain...\n");
     yyin = fp;
     return yylex();
 }
