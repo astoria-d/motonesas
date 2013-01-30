@@ -4,6 +4,7 @@ nesas.l ...
 */
 #include <stdio.h>
 #include "nesas.tab.h"
+#include "tools.h"
 
 #define MAXLEN  1024
 
@@ -52,7 +53,7 @@ WSPACE      [ \t\r]+
                 ch=input();
                 if (chlen >= MAXLEN) {
                     perror("quotation too long!!\n");
-                    return -1;
+                    return R_ERROR;
                 }
                 chbuf[chlen++] = (char)ch;
 
@@ -63,7 +64,7 @@ WSPACE      [ \t\r]+
                 }
                 if (ch == '\n') {
                     perror("quote is not closed!\n");
-                    return -1;
+                    return R_ERROR;
                 }
             }
             yylval.str = strdup(chbuf);
@@ -92,11 +93,11 @@ WSPACE      [ \t\r]+
 {SHARP}           { dprint("shp: %s\n", yytext); return SHARP; }
 {NL}              { dprint("%s", yytext); return NL; }
 {WSPACE}        {}
-<<EOF>>         { /*dprint("end..!\n"); */return 0;}
+<<EOF>>         { /*dprint("end..!\n"); */return EOF;}
 
 .               {
-                    perror("unknow character!!\n");
-                    return -1;
+                    perror("unknown character!!\n");
+                    return R_ERROR;
                 }
 %%
 /*

@@ -3,8 +3,16 @@
 nesas.y ...
 */
 #include <stdio.h>
+#include "tools.h"
+#include "6502inst.h"
 
 extern FILE *yyin;
+const char* cur_inst;
+
+
+#if 1
+#define dprint(...)    
+#endif
 /*
 */
 %}
@@ -66,15 +74,18 @@ instruction
         dprint("mne: %s\n", $<str>1);
         if (!check_inst($<str>1)) {
             perror("invalid instruction\n");
-            return -1;
+            YYERROR;
         }
+        cur_inst = $<str>1;
+        write_inst(NULL, cur_inst, PARAM_NON, 0);
     }
     |   IDENT {
         dprint("mne: %s ", $<str>1);
         if (!check_inst($<str>1)) {
             perror("invalid instruction\n");
-            return -1;
+            YYERROR;
         }
+        cur_inst = $<str>1;
     } inst_param
     ;
 
@@ -82,18 +93,36 @@ inst_param
     :   HEX
     {
         dprint("%04x\n", $<hex>1);
+        write_inst(NULL, cur_inst, PARAM_HEX, $<hex>1);
     }
     |   SHARP HEX
     {
         dprint("#%04x\n", $<hex>2);
+        write_inst(NULL, cur_inst, PARAM_IMMED, $<hex>2);
     }
     |   IDENT COMMA IDENT
     {
+        char ch;
+        int param;
+
+        //second parameter is either X or Y.
+        if (strcasecmp($<str>3, "X") && strcasecmp($<str>3, "Y")) {
+            perror("invalid parameter\n");
+            YYERROR;
+        }
         dprint("%s, %s\n", $<str>1, $<str>3);
+
+        param = PARAM_HEX;
+        ch = toupper($<str>3);
+        param |= ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y;
+        write_inst(NULL, cur_inst, param, $<hex>2);
     }
     |   IDENT
     {
         dprint("%s\n", $<str>1);
+        short addr;
+        addr = addr_lookup($<str>1);
+        write_inst(NULL, cur_inst, PARAM_HEX, addr);
     }
     ;
 
@@ -101,6 +130,10 @@ label
     :   IDENT COLON
     {
         dprint("lbl: %s\n", $<str>1);
+        if (!add_symbol($<str>1)) {
+            perror("invalid symbol\n");
+            YYERROR;
+        }
     }
     ;
 
@@ -108,6 +141,7 @@ label
 
 int parsermain(FILE* fp) {
     printf("parsermain...\n");
+    cur_inst = NULL;
     yyin = fp;
     return yyparse();
 }
@@ -115,6 +149,7 @@ int parsermain(FILE* fp) {
 int yyerror(const char* s) {
     printf(s);
     printf("\n");
-    return -1;
+    //return value is discarded..
+    return R_OK;
 }
 

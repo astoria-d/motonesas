@@ -2,7 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdio.h>
 #include "tools.h"
+#include "6502inst.h"
 
 struct instmap {
     char mnemonic[4];
@@ -13,21 +15,27 @@ struct instmap {
 #define NUM_ALPHA 'Z' - 'A' + 1
 #define ALPHA_INDEX(ch) ch - 'A'
 
-/* 6502 instructions
- * adr_mode
- * 0:Zero Page
- * 1:Zero Page, X
- * 2:Zero Page, Y
- * 3:Absolute
- * 4:Absolute, X
- * 5:Absolute, Y
- * 6:Indirect
- * 7:Implied
- * 8:Accumulator
- * 9:Immediate
- * 10:Relative
- * 11:(Indirect, X)
- * 12:(Indirect), Y
+/* 
+ * 6502 instructions
+ * adressing mode        instruction length
+ * 0:Zero Page           2
+ * 1:Zero Page, X        2
+ * 2:Zero Page, Y        2
+ * 3:Absolute            3
+ * 4:Absolute, X         3
+ * 5:Absolute, Y         3
+ * 6:Indirect            3
+ * 7:Implied             1
+ * 8:Accumulator         1
+ * 9:Immediate           2
+ * 10:Relative           2
+ * 11:(Indirect, X)      2
+ * 12:(Indirect), Y      2
+ * 
+ * */
+
+/*
+ * instructions by alphabetical order
  * */
 static struct instmap instructions[] = {
 #include "opcode"
@@ -38,9 +46,24 @@ struct inst_node {
     struct instmap * inst;
 };
 
+/*
+ * instruction definition search table
+ * */
 static struct inst_node * inst_srch [ NUM_ALPHA ] ;
 
-int inst_tbl_init(void) {
+
+struct symmap {
+    struct dlist list;
+    char *symbol;
+    unsigned short addr;
+};
+
+static struct symmap *symbol_tbl;
+static struct symmap *unresolved_symbol;
+
+static unsigned short current_pc;
+
+static int inst_tbl_init(void) {
     int index = 0;
     const int num_inst = sizeof (instructions) / sizeof( struct instmap);
 
@@ -66,10 +89,10 @@ int inst_tbl_init(void) {
         }
         index++;
     }
-    return 1;
+    return TRUE;
 }
 
-void inst_tbl_free(void) {
+static void inst_tbl_free(void) {
     dprint ("inst_tbl_free.\n");
 
     int index = 0;
@@ -95,13 +118,107 @@ int check_inst(const char* mnemonic) {
 
     struct inst_node * p= inst_srch[ii];
     while (p != NULL) {
-        if (!strcasecmp(mnemonic, p->inst->mnemonic))
-            return 1;
+        if (!strcasecmp(mnemonic, p->inst->mnemonic)) {
+            return TRUE;
+        }
 
         p = (struct inst_node*) p->next;
     } 
 
-    return 0;
+    return FALSE;
 }
 
+int add_symbol (const char* symbol) {
+    struct symmap* psym, *pp;
+
+    if (symbol_tbl == NULL) {
+        symbol_tbl = malloc(sizeof (struct symmap));
+        dlist_init(&symbol_tbl->list);
+        symbol_tbl->symbol = strdup(symbol);
+        symbol_tbl->addr = current_pc;
+
+        dprint("%s:\n", symbol);
+        return TRUE;
+    }
+    psym = symbol_tbl;
+    do {
+        if (!strcmp(psym->symbol, symbol)) {
+            return FALSE;
+        }
+        pp = psym;
+        psym = (struct symmap*) psym->list.next;
+    } while (psym != NULL);
+
+    /*add new symbol..*/
+    psym = malloc(sizeof (struct symmap));
+    dlist_init(&psym->list);
+    psym->symbol = strdup(symbol);
+    psym->addr = current_pc;
+    dlist_add_next((struct dlist*)pp, (struct dlist*)psym);
+
+    dprint("%s:\n", symbol);
+
+    return TRUE;
+
+}
+
+void clear_symtbl(void) {
+    struct symmap* psym;
+
+    psym = symbol_tbl;
+    while (psym != NULL) {
+        struct symmap* pp = psym;
+        psym = (struct symmap*) psym->list.next;
+
+        dlist_remove((struct dlist*)pp);
+        free(pp->symbol);
+        free(pp);
+    } 
+}
+
+int addr_lookup(const char* symbol) {
+    return FALSE;
+}
+
+static void deb_print_inst(const char* mnemonic, int addr_mode, unsigned short hex) {
+    if (addr_mode == PARAM_NON) {
+        printf("%04x:  %s\n", current_pc, mnemonic);
+    }
+    if (addr_mode == PARAM_IMMED) {
+        printf("%04x:  %s, #%02x\n", current_pc, mnemonic, hex);
+    }
+    else if (addr_mode & PARAM_HEX) {
+        if (addr_mode & PARAM_INDEX_X) 
+            printf("%04x:  %s, %04x, X\n", current_pc, mnemonic, hex);
+        else if (addr_mode & PARAM_INDEX_Y) 
+            printf("%04x:  %s, %04x, Y\n", current_pc, mnemonic, hex);
+        else 
+            printf("%04x:  %s, %04x\n", current_pc, mnemonic, hex);
+    }
+}
+
+int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short hex) {
+    fp = stdout;
+    deb_print_inst(mnemonic, addr_mode, hex);
+    if (addr_mode == PARAM_NON) {
+        current_pc += 1;
+    }
+    if (addr_mode == PARAM_IMMED) {
+        current_pc += 2;
+    }
+    else if (addr_mode & PARAM_HEX) {
+        current_pc += 2;
+    }
+}
+
+int inst_encode_init() {
+    inst_tbl_init(); 
+    symbol_tbl = NULL; 
+    current_pc = 0; 
+}
+
+void inst_encode_terminate() {
+    inst_tbl_free();
+    clear_symtbl(); 
+}
 

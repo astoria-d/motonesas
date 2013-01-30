@@ -1,16 +1,17 @@
 #include <stdio.h>
+#include "tools.h"
 
 int init_datas(void) {
     int ret;
-    ret = inst_tbl_init();
+    ret = inst_encode_init();
     if (!ret)
         return ret;
 
-    return 1;
+    return TRUE;
 }
 
 void destroy_datas(void) {
-    inst_tbl_free();
+    inst_encode_terminate();
 }
 
 int main (int argc, char** argv) {
@@ -23,14 +24,14 @@ int main (int argc, char** argv) {
     ret = init_datas();
     if (!ret) {
         perror("initialization failure...\n");
-        return -1;
+        return R_ERROR;
     }
 
     if (argc > 1) {
         fp=fopen(argv[1], "r");
         if (fp == NULL) {
             perror("invalid file!\n");
-            return -1;
+            return R_ERROR;
         }
         need_close = 1;
     }
@@ -43,6 +44,6 @@ int main (int argc, char** argv) {
         fclose(fp);
 
     destroy_datas(); 
-    return 0;
+    return R_OK;
 }
 
