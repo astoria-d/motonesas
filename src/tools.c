@@ -27,8 +27,8 @@ void dlist_add_next (struct dlist* dest, struct dlist* node) {
 
     if (next_node) {
         next_node->prev = node;
-        dest->next = node;
     }
+    dest->next = node;
     node->prev = dest;
     node->next = next_node;
 }

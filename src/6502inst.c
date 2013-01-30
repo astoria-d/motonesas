@@ -176,8 +176,39 @@ void clear_symtbl(void) {
     } 
 }
 
+static void add_unresolved_lookup(void) {
+    dprint("unresolvvd!!!\n");
+#warning need to add unresolved symbol handling...
+}
+
+
 int addr_lookup(const char* symbol) {
-    return FALSE;
+    struct symmap* psym;
+    int found = FALSE;
+    unsigned short addr = 0;
+
+    psym = symbol_tbl;
+    while (psym != NULL) {
+        struct symmap* pp = psym;
+
+        if (!strcmp(symbol, psym->symbol)) {
+            found = TRUE;
+            addr = psym->addr;
+            break;
+        }
+        psym = (struct symmap*) psym->list.next;
+    } 
+    if (!found) {
+        add_unresolved_lookup();
+    }
+    return addr;
+}
+
+short get_rel_addr(unsigned short abs_addr) {
+    return (int) abs_addr - current_pc ;
+}
+
+int resolve_sym(void) {
 }
 
 static void deb_print_inst(const char* mnemonic, int addr_mode, unsigned short hex) {
@@ -214,6 +245,7 @@ int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short hex
 int inst_encode_init() {
     inst_tbl_init(); 
     symbol_tbl = NULL; 
+    unresolved_symbol = NULL; 
     current_pc = 0; 
 }
 

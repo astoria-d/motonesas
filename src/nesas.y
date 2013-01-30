@@ -122,7 +122,7 @@ inst_param
         dprint("%s\n", $<str>1);
         short addr;
         addr = addr_lookup($<str>1);
-        write_inst(NULL, cur_inst, PARAM_HEX, addr);
+        write_inst(NULL, cur_inst, PARAM_HEX, get_rel_addr(addr));
     }
     ;
 
