@@ -64,9 +64,17 @@ hex_chain
 instruction
     :   IDENT {
         dprint("mne: %s\n", $<str>1);
+        if (!check_inst($<str>1)) {
+            perror("invalid instruction\n");
+            return -1;
+        }
     }
     |   IDENT {
         dprint("mne: %s ", $<str>1);
+        if (!check_inst($<str>1)) {
+            perror("invalid instruction\n");
+            return -1;
+        }
     } inst_param
     ;
 

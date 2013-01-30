@@ -41,6 +41,8 @@ int main (int argc, char** argv) {
 
     if (need_close)
         fclose(fp);
+
+    destroy_datas(); 
     return 0;
 }
 

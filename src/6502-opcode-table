@@ -1,3 +1,19 @@
+#Opcode    Mode    Hex
+### Mode number means following addressing mode:
+### Zero Page=1
+### Zero Page, X=2
+### Zero Page, Y=3
+### Absolute=4
+### Absolute, X=5
+### Absolute, Y=6
+### Indirect=7
+### Implied=8
+### Accumulator=9
+### Immediate=10
+### Relative=11
+### (Indirect, X)=12
+### (Indirect), Y=13
+#
 ADC	10	69
 ADC	1	65
 ADC	2	75
