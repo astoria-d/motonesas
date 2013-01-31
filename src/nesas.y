@@ -2,6 +2,9 @@
 /*
 nesas.y ...
 */
+//#define YYERROR_VERBOSE
+//#define YYDEBUG
+
 #include <stdio.h>
 #include "tools.h"
 #include "6502inst.h"
@@ -17,13 +20,14 @@ const char* cur_inst;
 /*
 */
 
+
 %}
 
-%token  DOT COLON SHARP COMMA NL
-%token  IDENT HEX STRING
+%token  DOT COLON SHARP COMMA LPAREN RPAREN NL
+%token  IDENT NUMBER STRING
 
 %union {
-    int hex;
+    int num;
     char* str;
 }
 %%
@@ -44,7 +48,7 @@ directive
     {
         dprint("dir: .%s\n", $<str>2);
         if (!directive_check($<str>2, DIR_PARAM_NON, NULL)) {
-            perror("invalid directive\n");
+            parser_perror("invalid directive\n");
             YYERROR;
         }
     }
@@ -52,7 +56,7 @@ directive
     {
         dprint("dir2: .%s %s\n", $<str>2, $<str>3);
         if (!directive_check($<str>2, DIR_PARAM_IDENT, $<str>3)) {
-            perror("invalid directive\n");
+            parser_perror("invalid directive\n");
             YYERROR;
         }
     }
@@ -60,25 +64,25 @@ directive
     {
         dprint("dir: .%s \"%s\"\n", $<str>2, $<str>3);
         if (!directive_check($<str>2, DIR_PARAM_LITERAL, $<str>3)) {
-            perror("invalid directive\n");
+            parser_perror("invalid directive\n");
             YYERROR;
         }
     }
     |   DOT IDENT {
         dprint("dir: .%s ", $<str>2);
-    } hex_chain {
+    } num_chain {
         dprint("\n");
     }
     ;
 
-hex_chain
-    :   HEX
+num_chain
+    :   NUMBER
     {
-        dprint("%04x", $<hex>1);
+        dprint("%04x", $<num>1);
     }
-    |   hex_chain COMMA HEX
+    |   num_chain COMMA NUMBER 
     {
-        dprint(", %04x", $<hex>3);
+        dprint(", %04x", $<num>3);
     }
     ;
 
@@ -87,7 +91,7 @@ instruction
     :   IDENT {
         dprint("mne: %s\n", $<str>1);
         if (!check_inst($<str>1)) {
-            perror("invalid instruction\n");
+            parser_perror("invalid instruction\n");
             YYERROR;
         }
         cur_inst = $<str>1;
@@ -96,7 +100,7 @@ instruction
     |   IDENT {
         dprint("mne: %s ", $<str>1);
         if (!check_inst($<str>1)) {
-            perror("invalid instruction\n");
+            parser_perror("invalid instruction\n");
             YYERROR;
         }
         cur_inst = $<str>1;
@@ -104,39 +108,86 @@ instruction
     ;
 
 inst_param
-    :   HEX
+    :   NUMBER
     {
-        dprint("%04x\n", $<hex>1);
-        write_inst(NULL, cur_inst, PARAM_HEX, $<hex>1);
+        dprint("%04x\n", $<num>1);
+        write_inst(NULL, cur_inst, PARAM_NUM, $<num>1);
     }
-    |   SHARP HEX
+    |   SHARP NUMBER
     {
-        dprint("#%04x\n", $<hex>2);
-        write_inst(NULL, cur_inst, PARAM_IMMED, $<hex>2);
+        dprint("#%04x\n", $<num>2);
+        write_inst(NULL, cur_inst, PARAM_IMMED, $<num>2);
     }
-    |   IDENT COMMA IDENT
+    |   NUMBER COMMA IDENT
     {
         char ch;
         int param;
 
         //second parameter is either X or Y.
         if (strcasecmp($<str>3, "X") && strcasecmp($<str>3, "Y")) {
-            perror("invalid parameter\n");
+            parser_perror("invalid parameter\n");
+            YYERROR;
+        }
+        dprint("%04x, %s\n", $<num>1, $<str>3);
+
+        param = PARAM_NUM;
+        ch = toupper(*$<str>3);
+        param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
+        write_inst(NULL, cur_inst, param, $<num>1);
+    }
+    |   IDENT COMMA IDENT
+    {
+        char ch;
+        int param;
+        short addr;
+
+        //second parameter is either X or Y.
+        if (strcasecmp($<str>3, "X") && strcasecmp($<str>3, "Y")) {
+            parser_perror("invalid parameter\n");
             YYERROR;
         }
         dprint("%s, %s\n", $<str>1, $<str>3);
 
-        param = PARAM_HEX;
-        ch = toupper($<str>3);
-        param |= ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y;
-        write_inst(NULL, cur_inst, param, $<hex>2);
+        param = PARAM_NUM;
+        ch = toupper(*$<str>3);
+        param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
+        addr = addr_lookup($<str>1);
+        write_inst(NULL, cur_inst, param, addr);
+    }
+    |   LPAREN NUMBER RPAREN
+    {
+        dprint("%04x\n", $<num>2);
+
+        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR, $<num>2);
+    }
+    |   LPAREN NUMBER COMMA IDENT RPAREN
+    {
+        //second parameter is X.
+        if (strcasecmp($<str>4, "X")) {
+            parser_perror("invalid parameter\n");
+            YYERROR;
+        }
+        dprint("(%04x, %s)\n", $<num>2, $<str>4);
+
+        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDEX_INDIR, $<num>2);
+    }
+    |   LPAREN NUMBER RPAREN COMMA IDENT
+    {
+        //second parameter is Y.
+        if (strcasecmp($<str>5, "Y")) {
+            parser_perror("invalid parameter\n");
+            YYERROR;
+        }
+        dprint("(%04x), %s\n", $<num>2, $<str>5);
+
+        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR_INDEX, $<num>2);
     }
     |   IDENT
     {
         dprint("%s\n", $<str>1);
         short addr;
         addr = addr_lookup($<str>1);
-        write_inst(NULL, cur_inst, PARAM_HEX, get_rel_addr(addr));
+        write_inst(NULL, cur_inst, PARAM_NUM, get_rel_addr(addr));
     }
     ;
 
@@ -145,7 +196,7 @@ label
     {
         dprint("lbl: %s\n", $<str>1);
         if (!add_symbol($<str>1)) {
-            perror("invalid symbol\n");
+            parser_perror("invalid symbol\n");
             YYERROR;
         }
     }
@@ -161,8 +212,7 @@ int parsermain(FILE* fp) {
 }
 
 int yyerror(const char* s) {
-    printf(s);
-    printf("\n");
+    parser_perror(s);
     //return value is discarded..
     return R_OK;
 }

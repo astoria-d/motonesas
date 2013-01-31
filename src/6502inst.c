@@ -211,33 +211,39 @@ short get_rel_addr(unsigned short abs_addr) {
 int resolve_sym(void) {
 }
 
-static void deb_print_inst(const char* mnemonic, int addr_mode, unsigned short hex) {
+static void deb_print_inst(const char* mnemonic, int addr_mode, unsigned short num) {
     if (addr_mode == PARAM_NON) {
         printf("%04x:  %s\n", current_pc, mnemonic);
     }
     if (addr_mode == PARAM_IMMED) {
-        printf("%04x:  %s, #%02x\n", current_pc, mnemonic, hex);
+        printf("%04x:  %s, #$%02x\n", current_pc, mnemonic, num);
     }
-    else if (addr_mode & PARAM_HEX) {
+    else if (addr_mode & PARAM_NUM ) {
         if (addr_mode & PARAM_INDEX_X) 
-            printf("%04x:  %s, %04x, X\n", current_pc, mnemonic, hex);
+            printf("%04x:  %s, $%04x, X\n", current_pc, mnemonic, num);
         else if (addr_mode & PARAM_INDEX_Y) 
-            printf("%04x:  %s, %04x, Y\n", current_pc, mnemonic, hex);
+            printf("%04x:  %s, $%04x, Y\n", current_pc, mnemonic, num);
+        else if (addr_mode & PARAM_INDIR) 
+            printf("%04x:  %s, ($%04x)\n", current_pc, mnemonic, num);
+        else if (addr_mode & PARAM_INDEX_INDIR) 
+            printf("%04x:  %s, ($%04x, Y)\n", current_pc, mnemonic, num);
+        else if (addr_mode & PARAM_INDIR_INDEX) 
+            printf("%04x:  %s, ($%04x), X\n", current_pc, mnemonic, num);
         else 
-            printf("%04x:  %s, %04x\n", current_pc, mnemonic, hex);
+            printf("%04x:  %s, $%04x\n", current_pc, mnemonic, num);
     }
 }
 
-int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short hex) {
+int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short num) {
     fp = stdout;
-    deb_print_inst(mnemonic, addr_mode, hex);
+    deb_print_inst(mnemonic, addr_mode, num);
     if (addr_mode == PARAM_NON) {
         current_pc += 1;
     }
     if (addr_mode == PARAM_IMMED) {
         current_pc += 2;
     }
-    else if (addr_mode & PARAM_HEX) {
+    else if (addr_mode & PARAM_NUM) {
         current_pc += 2;
     }
 }

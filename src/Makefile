@@ -25,9 +25,13 @@ nesas.yy.c: nesas.l
 	./opcode-gen.sh
 	gcc $(CFLAGS) -c $<
 
+test:
+	make
+	./test.sh
+
 clean:
 	-rm $(OBJS) $(BIN) nesas.yy.c nesas.tab.c nesas.tab.h \
-		opcode nesas.output
+		opcode nesas.output all-inst.asm
 
 
 

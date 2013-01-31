@@ -1,5 +1,6 @@
 #!/bin/bash
 
+##generate opcode table
 awk '
 ###ignore the line start with #
 $0!~/#/ {
