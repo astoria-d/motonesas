@@ -2,7 +2,7 @@
 BIN=motonesas
 
 OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o \
-	 6502inst.o
+	 6502inst.o 6502directive.o
 
 LIBS=-lfl
 CFLAGS=-g

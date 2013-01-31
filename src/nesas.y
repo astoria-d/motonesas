@@ -5,6 +5,7 @@ nesas.y ...
 #include <stdio.h>
 #include "tools.h"
 #include "6502inst.h"
+#include "6502directive.h"
 
 extern FILE *yyin;
 const char* cur_inst;
@@ -15,6 +16,7 @@ const char* cur_inst;
 #endif
 /*
 */
+
 %}
 
 %token  DOT COLON SHARP COMMA NL
@@ -41,14 +43,26 @@ directive
     :   DOT IDENT
     {
         dprint("dir: .%s\n", $<str>2);
+        if (!directive_check($<str>2, DIR_PARAM_NON, NULL)) {
+            perror("invalid directive\n");
+            YYERROR;
+        }
     }
     |   DOT IDENT IDENT
     {
-        dprint("dir: .%s %s\n", $<str>2, $<str>3);
+        dprint("dir2: .%s %s\n", $<str>2, $<str>3);
+        if (!directive_check($<str>2, DIR_PARAM_IDENT, $<str>3)) {
+            perror("invalid directive\n");
+            YYERROR;
+        }
     }
     |   DOT IDENT STRING
     {
         dprint("dir: .%s \"%s\"\n", $<str>2, $<str>3);
+        if (!directive_check($<str>2, DIR_PARAM_LITERAL, $<str>3)) {
+            perror("invalid directive\n");
+            YYERROR;
+        }
     }
     |   DOT IDENT {
         dprint("dir: .%s ", $<str>2);
