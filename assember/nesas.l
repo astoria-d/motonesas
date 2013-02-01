@@ -36,7 +36,7 @@ DIGIT       [0-9]
 
 IDENT       {ALPHA}({ALPHA}|{DIGIT})*
 HEXNUM      {DOL}[0-9a-fA-F]*
-DECIMAL     ({PLUS}|{MINUS})?[1-9]{DIGIT}*
+DECIMAL     ({PLUS}|{MINUS})?([1-9]{DIGIT}*|0)
 
 WSPACE      [ \t\r]+
 

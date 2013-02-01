@@ -505,13 +505,16 @@ void deb_print_nl(void) {
 
 int inst_encode_init() {
     inst_tbl_init(); 
+    init_section();
     symbol_tbl = NULL; 
     unresolved_symbol = NULL; 
     current_pc = 0; 
+    return TRUE;
 }
 
 void inst_encode_terminate() {
     inst_tbl_free();
     clear_symtbl(); 
+    destroy_section();
 }
 

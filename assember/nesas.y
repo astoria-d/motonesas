@@ -287,6 +287,7 @@ inst_param
             num = get_rel_addr(addr);
         else
             num = addr;
+
         if (!write_inst(cur_inst, PARAM_NUM, num)) {
             parser_perror("invalid operand\n", $<str>1);
             free($<str>1);
