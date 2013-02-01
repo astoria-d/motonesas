@@ -12,7 +12,7 @@ nesas.y ...
 
 extern FILE *yyin;
 const char* cur_inst;
-
+int dir_data_size = 0;
 
 #if 1
 #define dprint(...)    
@@ -47,7 +47,7 @@ directive
     :   DOT IDENT
     {
         dprint("dir: .%s\n", $<str>2);
-        if (!directive_check($<str>2, DIR_PARAM_NON, NULL)) {
+        if (!directive_check($<str>2, DIR_PARAM_NON, NULL, 0)) {
             parser_perror("invalid directive\n");
             YYERROR;
         }
@@ -55,7 +55,7 @@ directive
     |   DOT IDENT IDENT
     {
         dprint("dir2: .%s %s\n", $<str>2, $<str>3);
-        if (!directive_check($<str>2, DIR_PARAM_IDENT, $<str>3)) {
+        if (!directive_check($<str>2, DIR_PARAM_IDENT, $<str>3, 0)) {
             parser_perror("invalid directive\n");
             YYERROR;
         }
@@ -63,15 +63,25 @@ directive
     |   DOT IDENT STRING
     {
         dprint("dir: .%s \"%s\"\n", $<str>2, $<str>3);
-        if (!directive_check($<str>2, DIR_PARAM_LITERAL, $<str>3)) {
+        if (!directive_check($<str>2, DIR_PARAM_LITERAL, $<str>3, 0)) {
             parser_perror("invalid directive\n");
             YYERROR;
         }
     }
     |   DOT IDENT {
         dprint("dir: .%s ", $<str>2);
+
+        if (!directive_check($<str>2, DIR_PARAM_NUM, NULL, 0)) {
+            parser_perror("invalid directive\n");
+            YYERROR;
+        }
+        if (!strcmp($<str>2, "byte"))
+            dir_data_size = 1;
+        else if (!strcmp($<str>2, "word"))
+            dir_data_size = 2;
     } num_chain {
         dprint("\n");
+        deb_print_nl(); 
     }
     ;
 
@@ -79,10 +89,18 @@ num_chain
     :   NUMBER
     {
         dprint("%04x", $<num>1);
+        if (dir_data_size == 1)
+            write_byte_data($<num>1);
+        else
+            write_word_data($<num>1);
     }
     |   num_chain COMMA NUMBER 
     {
         dprint(", %04x", $<num>3);
+        if (dir_data_size == 1)
+            write_byte_data($<num>3);
+        else
+            write_word_data($<num>3);
     }
     ;
 
@@ -95,7 +113,7 @@ instruction
             YYERROR;
         }
         cur_inst = $<str>1;
-        if (!write_inst(NULL, cur_inst, PARAM_NON, 0)) {
+        if (!write_inst(cur_inst, PARAM_NON, 0)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -114,7 +132,7 @@ inst_param
     :   NUMBER
     {
         dprint("%04x\n", $<num>1);
-        if (!write_inst(NULL, cur_inst, PARAM_NUM, $<num>1)) {
+        if (!write_inst(cur_inst, PARAM_NUM, $<num>1)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -122,7 +140,7 @@ inst_param
     |   SHARP NUMBER
     {
         dprint("#%04x\n", $<num>2);
-        if (!write_inst(NULL, cur_inst, PARAM_IMMED, $<num>2)) {
+        if (!write_inst(cur_inst, PARAM_IMMED, $<num>2)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -142,7 +160,7 @@ inst_param
         param = PARAM_NUM;
         ch = toupper(*$<str>3);
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
-        if (!write_inst(NULL, cur_inst, param, $<num>1)) {
+        if (!write_inst(cur_inst, param, $<num>1)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -151,7 +169,8 @@ inst_param
     {
         char ch;
         int param;
-        short addr;
+        unsigned short addr = 0;
+        int num = 0;
 
         //second parameter is either X or Y.
         if (strcasecmp($<str>3, "X") && strcasecmp($<str>3, "Y")) {
@@ -163,8 +182,12 @@ inst_param
         param = PARAM_NUM;
         ch = toupper(*$<str>3);
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
-        addr = addr_lookup($<str>1);
-        if (!write_inst(NULL, cur_inst, param, addr)) {
+        if (addr_lookup($<str>1, &addr)) 
+            num = get_rel_addr(addr);
+        else
+            num = addr;
+
+        if (!write_inst(cur_inst, param, num)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -173,7 +196,7 @@ inst_param
     {
         dprint("%04x\n", $<num>2);
 
-        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR, $<num>2)) {
+        if (!write_inst(cur_inst, PARAM_NUM | PARAM_INDIR, $<num>2)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -187,7 +210,7 @@ inst_param
         }
         dprint("(%04x, %s)\n", $<num>2, $<str>4);
 
-        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDEX_INDIR, $<num>2)) {
+        if (!write_inst(cur_inst, PARAM_NUM | PARAM_INDEX_INDIR, $<num>2)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
@@ -201,18 +224,22 @@ inst_param
         }
         dprint("(%04x), %s\n", $<num>2, $<str>5);
 
-        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR_INDEX, $<num>2)) {
+        if (!write_inst(cur_inst, PARAM_NUM | PARAM_INDIR_INDEX, $<num>2)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }
     }
     |   IDENT
     {
-        short addr;
+        unsigned short addr = 0;
+        int num = 0;
 
         dprint("%s\n", $<str>1);
-        addr = addr_lookup($<str>1);
-        if (!write_inst(NULL, cur_inst, PARAM_NUM, get_rel_addr(addr))) {
+        if (addr_lookup($<str>1, &addr)) 
+            num = get_rel_addr(addr);
+        else
+            num = addr;
+        if (!write_inst(cur_inst, PARAM_NUM, num)) {
             parser_perror("invalid operand\n");
             YYERROR;
         }

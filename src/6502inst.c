@@ -6,6 +6,8 @@
 #include "tools.h"
 #include "6502inst.h"
 
+#define NUM_SPACE 15
+
 struct instmap {
     char mnemonic[4];
     unsigned char adr_mode;
@@ -182,10 +184,9 @@ static void add_unresolved_lookup(void) {
 }
 
 
-int addr_lookup(const char* symbol) {
+int addr_lookup(const char* symbol, unsigned short* return_addr) {
     struct symmap* psym;
     int found = FALSE;
-    unsigned short addr = 0;
 
     psym = symbol_tbl;
     while (psym != NULL) {
@@ -193,7 +194,7 @@ int addr_lookup(const char* symbol) {
 
         if (!strcmp(symbol, psym->symbol)) {
             found = TRUE;
-            addr = psym->addr;
+            *return_addr = psym->addr;
             break;
         }
         psym = (struct symmap*) psym->list.next;
@@ -201,10 +202,10 @@ int addr_lookup(const char* symbol) {
     if (!found) {
         add_unresolved_lookup();
     }
-    return addr;
+    return found;
 }
 
-short get_rel_addr(unsigned short abs_addr) {
+int get_rel_addr(unsigned short abs_addr) {
     return (int) abs_addr - current_pc ;
 }
 
@@ -222,12 +223,12 @@ static int encode_inst(const char* mnemonic, int addr_mode, int num,
     int ii = ALPHA_INDEX(inst_ch);
     int found = FALSE;
     int len = 0;
-    int oprand_size = 0;
+    int operand_size = 0;
 
     struct inst_node * p= inst_srch[ii];
 
-    //operand size check.
-    if ( num > 0xFFFF || num < -0xFF ) {
+    //operand size check. 0 ~ 0xFF or -0x80 ~ 0x7F
+    if ( num > 0xFFFF || num < -0x80 ) {
         //operand too big.
         return 0;
     }
@@ -261,16 +262,20 @@ static int encode_inst(const char* mnemonic, int addr_mode, int num,
         } 
     }
 
-    if ( num < 0xFF ) 
-        oprand_size = 1;
+    if ( num <= 0xFF ) 
+        operand_size = 1;
     else
-        oprand_size = 2;
+        operand_size = 2;
 
-    //indirect always takes two params
+    //indirect always takes two byte param
     if (addr_mode == (PARAM_NUM | PARAM_INDIR))
-        oprand_size = 2;
+        operand_size = 2;
 
-    if (oprand_size == 1) {
+    //jum/jsr always take two byte param
+    if (!strcasecmp(mnemonic, "JMP") || !strcasecmp(mnemonic, "JSR")) 
+        operand_size = 2;
+
+    if (operand_size == 1) {
         while (p != NULL) {
             if (strcasecmp(mnemonic, p->inst->mnemonic)) {
                 break;
@@ -355,7 +360,10 @@ static int encode_inst(const char* mnemonic, int addr_mode, int num,
     return 0;
 }
 
+#define DEB_PRINT
+
 static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
+#ifdef DEB_PRINT
     int len = 0;
     int space = 0;
     unsigned char opcode[3];
@@ -374,6 +382,7 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
     }
     else if (addr_mode & PARAM_NUM ) {
         if (len == 2) {
+            num &= 0xff;
             if (addr_mode & PARAM_INDEX_X) {
                 printf("%04x:  %s $%02x, X", current_pc, mnemonic, num);
                 space = 7;
@@ -396,6 +405,7 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
             }
         }
         else {
+            num &= 0xffff;
             if (addr_mode & PARAM_INDEX_X) {
                 printf("%04x:  %s $%04x, X", current_pc, mnemonic, num);
                 space = 9;
@@ -423,21 +433,21 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
         }
     }
 
-    for (i = 0; i < 15 - space; i++)
+    for (i = 0; i < NUM_SPACE - space; i++)
         printf(" ");
     for (i = 0; i < len; i++)
         printf("%02x ", opcode[i]);
     printf("\n");
+#endif /*DEB_PRINT*/
 }
 
-int write_inst(FILE* fp, const char* mnemonic, int addr_mode, int num) {
+int write_inst(const char* mnemonic, int addr_mode, int num) {
     int len;
     char opcode[3];
     len = encode_inst(mnemonic, addr_mode, num, opcode);
     if (len == 0) 
         return FALSE;
 
-    fp = stdout;
     deb_print_inst(mnemonic, addr_mode, num);
     if (addr_mode == PARAM_NON) {
         current_pc += 1;
@@ -450,6 +460,47 @@ int write_inst(FILE* fp, const char* mnemonic, int addr_mode, int num) {
     }
 
     return TRUE;
+}
+
+static void deb_print_str(const char* str) {
+#ifdef DEB_PRINT
+    int i, len = strlen (str);
+    for (i = 0; i < len; i++) {
+        printf("%c ", *(str + i));
+    }
+    printf ("00\n");
+#endif /*DEB_PRINT*/
+}
+
+void write_str(const char* str) {
+    deb_print_str(str);
+}
+
+static void deb_print_word(int num) {
+#ifdef DEB_PRINT
+    printf("%02x ", 0xFF & num);
+    printf("%02x ", 0xFF & (num >> 8));
+#endif /*DEB_PRINT*/
+}
+
+void write_word_data(int num) {
+    deb_print_word(num);
+}
+
+static void deb_print_byte(int num) {
+#ifdef DEB_PRINT
+    printf("%02x ", 0xFF & num);
+#endif /*DEB_PRINT*/
+}
+
+void write_byte_data(int num) {
+    deb_print_byte(num);
+}
+
+void deb_print_nl(void) {
+#ifdef DEB_PRINT
+    printf("\n");
+#endif /*DEB_PRINT*/
 }
 
 int inst_encode_init() {
