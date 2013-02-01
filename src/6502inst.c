@@ -369,56 +369,56 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
         printf("%04x:  %s", current_pc, mnemonic);
     }
     if (addr_mode == PARAM_IMMED) {
-        printf("%04x:  %s, #$%02x", current_pc, mnemonic, num);
-        space = 6;
+        printf("%04x:  %s #$%02x", current_pc, mnemonic, num);
+        space = 5;
     }
     else if (addr_mode & PARAM_NUM ) {
         if (len == 2) {
             if (addr_mode & PARAM_INDEX_X) {
-                printf("%04x:  %s, $%02x, X", current_pc, mnemonic, num);
-                space = 8;
+                printf("%04x:  %s $%02x, X", current_pc, mnemonic, num);
+                space = 7;
             }
             else if (addr_mode & PARAM_INDEX_Y) {
-                printf("%04x:  %s, $%02x, Y", current_pc, mnemonic, num);
-                space = 8;
+                printf("%04x:  %s $%02x, Y", current_pc, mnemonic, num);
+                space = 7;
             }
             else if (addr_mode & PARAM_INDEX_INDIR) { 
-                printf("%04x:  %s, ($%02x, Y)", current_pc, mnemonic, num);
-                space = 10;
+                printf("%04x:  %s ($%02x, Y)", current_pc, mnemonic, num);
+                space = 9;
             }
             else if (addr_mode & PARAM_INDIR_INDEX) { 
-                printf("%04x:  %s, ($%02x), X", current_pc, mnemonic, num);
-                space = 10;
+                printf("%04x:  %s ($%02x), X", current_pc, mnemonic, num);
+                space = 9;
             }
             else {
-                printf("%04x:  %s, $%02x", current_pc, mnemonic, num);
-                space = 5;
+                printf("%04x:  %s $%02x", current_pc, mnemonic, num);
+                space = 4;
             }
         }
         else {
             if (addr_mode & PARAM_INDEX_X) {
-                printf("%04x:  %s, $%04x, X", current_pc, mnemonic, num);
-                space = 10;
-            }
-            else if (addr_mode & PARAM_INDEX_Y) { 
-                printf("%04x:  %s, $%04x, Y", current_pc, mnemonic, num);
-                space = 10;
-            }
-            else if (addr_mode & PARAM_INDIR) { 
-                printf("%04x:  %s, ($%04x)", current_pc, mnemonic, num);
+                printf("%04x:  %s $%04x, X", current_pc, mnemonic, num);
                 space = 9;
             }
+            else if (addr_mode & PARAM_INDEX_Y) { 
+                printf("%04x:  %s $%04x, Y", current_pc, mnemonic, num);
+                space = 9;
+            }
+            else if (addr_mode & PARAM_INDIR) { 
+                printf("%04x:  %s ($%04x)", current_pc, mnemonic, num);
+                space = 8;
+            }
             else if (addr_mode & PARAM_INDEX_INDIR) { 
-                printf("%04x:  %s, ($%04x, Y)", current_pc, mnemonic, num);
-                space = 10;
+                printf("%04x:  %s ($%04x, Y)", current_pc, mnemonic, num);
+                space = 9;
             }
             else if (addr_mode & PARAM_INDIR_INDEX) { 
-                printf("%04x:  %s, ($%04x), X", current_pc, mnemonic, num);
-                space = 10;
+                printf("%04x:  %s ($%04x), X", current_pc, mnemonic, num);
+                space = 9;
             }
             else {
-                printf("%04x:  %s, $%04x", current_pc, mnemonic, num);
-                space = 7;
+                printf("%04x:  %s $%04x", current_pc, mnemonic, num);
+                space = 6;
             }
         }
     }
