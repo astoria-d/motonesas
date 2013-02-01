@@ -211,30 +211,232 @@ short get_rel_addr(unsigned short abs_addr) {
 int resolve_sym(void) {
 }
 
-static void deb_print_inst(const char* mnemonic, int addr_mode, unsigned short num) {
+/*
+ * returns the length of opcode.
+ * returns 0 if invalid.
+ * */
+static int encode_inst(const char* mnemonic, int addr_mode, int num, 
+        unsigned char* out_bytes /*output array*/ ) {
+
+    char inst_ch = toupper(*mnemonic);
+    int ii = ALPHA_INDEX(inst_ch);
+    int found = FALSE;
+    int len = 0;
+    int oprand_size = 0;
+
+    struct inst_node * p= inst_srch[ii];
+
+    //operand size check.
+    if ( num > 0xFFFF || num < -0xFF ) {
+        //operand too big.
+        return 0;
+    }
+
+    //search mnemonic
+    while (p != NULL) {
+        if (!strcasecmp(mnemonic, p->inst->mnemonic)) {
+            found = TRUE;
+            break;
+        }
+        p = (struct inst_node*) p->next;
+    } 
+
+    if (!found) 
+        return 0;
+
+
+    //search address mode
+    found = FALSE;
     if (addr_mode == PARAM_NON) {
-        printf("%04x:  %s\n", current_pc, mnemonic);
+        while (p != NULL) {
+            if (strcasecmp(mnemonic, p->inst->mnemonic)) {
+                break;
+            }
+            if (p->inst->adr_mode == 7 || p->inst->adr_mode == 8) {
+                len = 1;
+                *out_bytes = p->inst->opcode;
+                return len;
+            }
+            p = (struct inst_node*) p->next;
+        } 
     }
-    if (addr_mode == PARAM_IMMED) {
-        printf("%04x:  %s, #$%02x\n", current_pc, mnemonic, num);
+
+    if ( num < 0xFF ) 
+        oprand_size = 1;
+    else
+        oprand_size = 2;
+
+    //indirect always takes two params
+    if (addr_mode == (PARAM_NUM | PARAM_INDIR))
+        oprand_size = 2;
+
+    if (oprand_size == 1) {
+        while (p != NULL) {
+            if (strcasecmp(mnemonic, p->inst->mnemonic)) {
+                break;
+            }
+            if (addr_mode == PARAM_IMMED && p->inst->adr_mode == 9) {
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDEX_X) && p->inst->adr_mode == 1) {
+                //zero page, x
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDEX_Y) && p->inst->adr_mode == 2) {
+                //zero page, y 
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDEX_INDIR) && p->inst->adr_mode == 11) {
+                //index indirect (index, x)
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDIR_INDEX) && p->inst->adr_mode == 12) {
+                //indirect index (index), y
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == PARAM_NUM && 
+                    ( p->inst->adr_mode == 0 || p->inst->adr_mode == 10 ) ) {
+                //zero page, or relative.
+                found = TRUE;
+                break;
+            }
+            p = (struct inst_node*) p->next;
+        } 
+        if (found) {
+            len = 2;
+            *out_bytes++ = p->inst->opcode;
+            *out_bytes = num;
+            return len;
+        }
     }
-    else if (addr_mode & PARAM_NUM ) {
-        if (addr_mode & PARAM_INDEX_X) 
-            printf("%04x:  %s, $%04x, X\n", current_pc, mnemonic, num);
-        else if (addr_mode & PARAM_INDEX_Y) 
-            printf("%04x:  %s, $%04x, Y\n", current_pc, mnemonic, num);
-        else if (addr_mode & PARAM_INDIR) 
-            printf("%04x:  %s, ($%04x)\n", current_pc, mnemonic, num);
-        else if (addr_mode & PARAM_INDEX_INDIR) 
-            printf("%04x:  %s, ($%04x, Y)\n", current_pc, mnemonic, num);
-        else if (addr_mode & PARAM_INDIR_INDEX) 
-            printf("%04x:  %s, ($%04x), X\n", current_pc, mnemonic, num);
-        else 
-            printf("%04x:  %s, $%04x\n", current_pc, mnemonic, num);
+    else {
+        while (p != NULL) {
+            if (strcasecmp(mnemonic, p->inst->mnemonic)) {
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDEX_X) && p->inst->adr_mode == 4) {
+                //absolute, x
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDEX_Y) && p->inst->adr_mode == 5) {
+                //absolute, y 
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == (PARAM_NUM | PARAM_INDIR) && p->inst->adr_mode == 6) {
+                //indirect index (index), y
+                found = TRUE;
+                break;
+            }
+            else if (addr_mode == PARAM_NUM && 
+                    ( p->inst->adr_mode == 3 || p->inst->adr_mode == 3 ) ) {
+                //absolute or indirect
+                found = TRUE;
+                break;
+            }
+            p = (struct inst_node*) p->next;
+        } 
+        if (found) {
+            len = 3;
+            //byte order: little endian.
+            *out_bytes++ = p->inst->opcode;
+            *out_bytes++ = 0xFF & num;
+            *out_bytes = 0xFF & (num >> 8);
+            return len;
+        }
     }
+
+    return 0;
 }
 
-int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short num) {
+static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
+    int len = 0;
+    int space = 0;
+    unsigned char opcode[3];
+    int i;
+
+    len = encode_inst(mnemonic, addr_mode, num, opcode);
+    if (len == 0) 
+        return;
+
+    if (addr_mode == PARAM_NON) {
+        printf("%04x:  %s", current_pc, mnemonic);
+    }
+    if (addr_mode == PARAM_IMMED) {
+        printf("%04x:  %s, #$%02x", current_pc, mnemonic, num);
+        space = 6;
+    }
+    else if (addr_mode & PARAM_NUM ) {
+        if (len == 2) {
+            if (addr_mode & PARAM_INDEX_X) {
+                printf("%04x:  %s, $%02x, X", current_pc, mnemonic, num);
+                space = 8;
+            }
+            else if (addr_mode & PARAM_INDEX_Y) {
+                printf("%04x:  %s, $%02x, Y", current_pc, mnemonic, num);
+                space = 8;
+            }
+            else if (addr_mode & PARAM_INDEX_INDIR) { 
+                printf("%04x:  %s, ($%02x, Y)", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else if (addr_mode & PARAM_INDIR_INDEX) { 
+                printf("%04x:  %s, ($%02x), X", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else {
+                printf("%04x:  %s, $%02x", current_pc, mnemonic, num);
+                space = 5;
+            }
+        }
+        else {
+            if (addr_mode & PARAM_INDEX_X) {
+                printf("%04x:  %s, $%04x, X", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else if (addr_mode & PARAM_INDEX_Y) { 
+                printf("%04x:  %s, $%04x, Y", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else if (addr_mode & PARAM_INDIR) { 
+                printf("%04x:  %s, ($%04x)", current_pc, mnemonic, num);
+                space = 9;
+            }
+            else if (addr_mode & PARAM_INDEX_INDIR) { 
+                printf("%04x:  %s, ($%04x, Y)", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else if (addr_mode & PARAM_INDIR_INDEX) { 
+                printf("%04x:  %s, ($%04x), X", current_pc, mnemonic, num);
+                space = 10;
+            }
+            else {
+                printf("%04x:  %s, $%04x", current_pc, mnemonic, num);
+                space = 7;
+            }
+        }
+    }
+
+    for (i = 0; i < 15 - space; i++)
+        printf(" ");
+    for (i = 0; i < len; i++)
+        printf("%02x ", opcode[i]);
+    printf("\n");
+}
+
+int write_inst(FILE* fp, const char* mnemonic, int addr_mode, int num) {
+    int len;
+    char opcode[3];
+    len = encode_inst(mnemonic, addr_mode, num, opcode);
+    if (len == 0) 
+        return FALSE;
+
     fp = stdout;
     deb_print_inst(mnemonic, addr_mode, num);
     if (addr_mode == PARAM_NON) {
@@ -246,6 +448,8 @@ int write_inst(FILE* fp, const char* mnemonic, int addr_mode, unsigned short num
     else if (addr_mode & PARAM_NUM) {
         current_pc += 2;
     }
+
+    return TRUE;
 }
 
 int inst_encode_init() {

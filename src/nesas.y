@@ -95,7 +95,10 @@ instruction
             YYERROR;
         }
         cur_inst = $<str>1;
-        write_inst(NULL, cur_inst, PARAM_NON, 0);
+        if (!write_inst(NULL, cur_inst, PARAM_NON, 0)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   IDENT {
         dprint("mne: %s ", $<str>1);
@@ -111,12 +114,18 @@ inst_param
     :   NUMBER
     {
         dprint("%04x\n", $<num>1);
-        write_inst(NULL, cur_inst, PARAM_NUM, $<num>1);
+        if (!write_inst(NULL, cur_inst, PARAM_NUM, $<num>1)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   SHARP NUMBER
     {
         dprint("#%04x\n", $<num>2);
-        write_inst(NULL, cur_inst, PARAM_IMMED, $<num>2);
+        if (!write_inst(NULL, cur_inst, PARAM_IMMED, $<num>2)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   NUMBER COMMA IDENT
     {
@@ -133,7 +142,10 @@ inst_param
         param = PARAM_NUM;
         ch = toupper(*$<str>3);
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
-        write_inst(NULL, cur_inst, param, $<num>1);
+        if (!write_inst(NULL, cur_inst, param, $<num>1)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   IDENT COMMA IDENT
     {
@@ -152,13 +164,19 @@ inst_param
         ch = toupper(*$<str>3);
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
         addr = addr_lookup($<str>1);
-        write_inst(NULL, cur_inst, param, addr);
+        if (!write_inst(NULL, cur_inst, param, addr)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   LPAREN NUMBER RPAREN
     {
         dprint("%04x\n", $<num>2);
 
-        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR, $<num>2);
+        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR, $<num>2)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   LPAREN NUMBER COMMA IDENT RPAREN
     {
@@ -169,7 +187,10 @@ inst_param
         }
         dprint("(%04x, %s)\n", $<num>2, $<str>4);
 
-        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDEX_INDIR, $<num>2);
+        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDEX_INDIR, $<num>2)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   LPAREN NUMBER RPAREN COMMA IDENT
     {
@@ -180,14 +201,21 @@ inst_param
         }
         dprint("(%04x), %s\n", $<num>2, $<str>5);
 
-        write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR_INDEX, $<num>2);
+        if (!write_inst(NULL, cur_inst, PARAM_NUM | PARAM_INDIR_INDEX, $<num>2)) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     |   IDENT
     {
-        dprint("%s\n", $<str>1);
         short addr;
+
+        dprint("%s\n", $<str>1);
         addr = addr_lookup($<str>1);
-        write_inst(NULL, cur_inst, PARAM_NUM, get_rel_addr(addr));
+        if (!write_inst(NULL, cur_inst, PARAM_NUM, get_rel_addr(addr))) {
+            parser_perror("invalid operand\n");
+            YYERROR;
+        }
     }
     ;
 
