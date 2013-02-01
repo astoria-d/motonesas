@@ -6,12 +6,16 @@ int init_datas(void) {
     ret = inst_encode_init();
     if (!ret)
         return ret;
+    ret = init_section();
+    if (!ret)
+        return ret;
 
     return TRUE;
 }
 
 void destroy_datas(void) {
     inst_encode_terminate();
+    destroy_section();
 }
 
 int main (int argc, char** argv) {
