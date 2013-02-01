@@ -9,8 +9,8 @@ void dprint(char* s, char* arg1, unsigned int arg2, unsigned int arg3,
      **/
 }
 
-void parser_perror(const char* msg) {
-    fprintf (stderr, "line %d at [%s]\n", yyget_lineno(), yyget_text());
+void parser_perror(const char* msg, const char* near) {
+    fprintf (stderr, "line %d at [%s] (near %s)\n", yyget_lineno(), yyget_text(), near);
     perror (msg);
 }
 

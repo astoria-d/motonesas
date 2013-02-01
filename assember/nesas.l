@@ -17,6 +17,8 @@ nesas.l ...
 static void inc_line(void);
 %}
 
+%option noyywrap
+
 DOT         "."
 COLON       ":"
 DOL         "$"
@@ -76,15 +78,14 @@ WSPACE      [ \t\r]+
                 }
             }
             yylval.str = strdup(chbuf);
-#warning    strdup must be deallocated!!!!!
 
+            //printf("strdup: %8x\n", yylval.str);
             return STRING;
         }
 
 {IDENT}         { 
                     dprint("idt: %s\n", yytext); 
                     yylval.str = strdup(yytext);
-#warning    strdup must be deallocated!!!!!
 
                     return IDENT; 
                 }
