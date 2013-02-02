@@ -92,13 +92,13 @@ int addr_lookup(const char* symbol, unsigned short* return_addr) {
 int resolve_sym(void) {
 }
 
-int init_section(void) {
+int init_segment(void) {
     symbol_tbl = NULL; 
     unresolved_symbol = NULL; 
     return TRUE;
 }
 
-void destroy_section(void) {
+void destroy_segment(void) {
     clear_symtbl(); 
 }
 

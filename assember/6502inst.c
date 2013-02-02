@@ -55,6 +55,7 @@ static struct inst_node * inst_srch [ NUM_ALPHA ] ;
 
 
 static unsigned short current_pc;
+unsigned short get_current_pc(void);
 
 static int inst_tbl_init(void) {
     int index = 0;
@@ -123,7 +124,7 @@ int check_inst(const char* mnemonic) {
 
 
 int get_rel_addr(unsigned short abs_addr) {
-    return (int) abs_addr - current_pc ;
+    return (int) abs_addr - get_current_pc() ;
 }
 
 /*
@@ -288,60 +289,60 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
         return;
 
     if (addr_mode == PARAM_NON) {
-        printf("%04x:  %s", current_pc, mnemonic);
+        printf("%04x:  %s", get_current_pc(), mnemonic);
     }
     if (addr_mode == PARAM_IMMED) {
-        printf("%04x:  %s #$%02x", current_pc, mnemonic, num);
+        printf("%04x:  %s #$%02x", get_current_pc(), mnemonic, num);
         space = 5;
     }
     else if (addr_mode & PARAM_NUM ) {
         if (len == 2) {
             num &= 0xff;
             if (addr_mode & PARAM_INDEX_X) {
-                printf("%04x:  %s $%02x, X", current_pc, mnemonic, num);
+                printf("%04x:  %s $%02x, X", get_current_pc(), mnemonic, num);
                 space = 7;
             }
             else if (addr_mode & PARAM_INDEX_Y) {
-                printf("%04x:  %s $%02x, Y", current_pc, mnemonic, num);
+                printf("%04x:  %s $%02x, Y", get_current_pc(), mnemonic, num);
                 space = 7;
             }
             else if (addr_mode & PARAM_INDEX_INDIR) { 
-                printf("%04x:  %s ($%02x, Y)", current_pc, mnemonic, num);
+                printf("%04x:  %s ($%02x, Y)", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else if (addr_mode & PARAM_INDIR_INDEX) { 
-                printf("%04x:  %s ($%02x), X", current_pc, mnemonic, num);
+                printf("%04x:  %s ($%02x), X", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else {
-                printf("%04x:  %s $%02x", current_pc, mnemonic, num);
+                printf("%04x:  %s $%02x", get_current_pc(), mnemonic, num);
                 space = 4;
             }
         }
         else {
             num &= 0xffff;
             if (addr_mode & PARAM_INDEX_X) {
-                printf("%04x:  %s $%04x, X", current_pc, mnemonic, num);
+                printf("%04x:  %s $%04x, X", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else if (addr_mode & PARAM_INDEX_Y) { 
-                printf("%04x:  %s $%04x, Y", current_pc, mnemonic, num);
+                printf("%04x:  %s $%04x, Y", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else if (addr_mode & PARAM_INDIR) { 
-                printf("%04x:  %s ($%04x)", current_pc, mnemonic, num);
+                printf("%04x:  %s ($%04x)", get_current_pc(), mnemonic, num);
                 space = 8;
             }
             else if (addr_mode & PARAM_INDEX_INDIR) { 
-                printf("%04x:  %s ($%04x, Y)", current_pc, mnemonic, num);
+                printf("%04x:  %s ($%04x, Y)", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else if (addr_mode & PARAM_INDIR_INDEX) { 
-                printf("%04x:  %s ($%04x), X", current_pc, mnemonic, num);
+                printf("%04x:  %s ($%04x), X", get_current_pc(), mnemonic, num);
                 space = 9;
             }
             else {
-                printf("%04x:  %s $%04x", current_pc, mnemonic, num);
+                printf("%04x:  %s $%04x", get_current_pc(), mnemonic, num);
                 space = 6;
             }
         }
@@ -363,15 +364,7 @@ int write_inst(const char* mnemonic, int addr_mode, int num) {
         return FALSE;
 
     deb_print_inst(mnemonic, addr_mode, num);
-    if (addr_mode == PARAM_NON) {
-        current_pc += 1;
-    }
-    if (addr_mode == PARAM_IMMED) {
-        current_pc += 2;
-    }
-    else if (addr_mode & PARAM_NUM) {
-        current_pc += 2;
-    }
+    move_current_pc(len);
 
     return TRUE;
 }
@@ -420,6 +413,10 @@ void deb_print_nl(void) {
 
 unsigned short get_current_pc(void) {
     return current_pc;
+}
+
+void move_current_pc(short offset) {
+    current_pc += offset;
 }
 
 int inst_encode_init() {

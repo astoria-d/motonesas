@@ -6,7 +6,7 @@ int init_datas(void) {
     ret = inst_encode_init();
     if (!ret)
         return ret;
-    ret = init_section();
+    ret = init_segment();
     if (!ret)
         return ret;
 
@@ -15,7 +15,7 @@ int init_datas(void) {
 
 void destroy_datas(void) {
     inst_encode_terminate();
-    destroy_section();
+    destroy_segment();
 }
 
 int main (int argc, char** argv) {
