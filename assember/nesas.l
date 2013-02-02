@@ -63,7 +63,7 @@ WSPACE      [ \t\r]+
                 ch=input();
                 if (chlen >= MAXLEN) {
                     parser_perror("quotation too long!!\n");
-                    return R_ERROR;
+                    return RT_ERROR;
                 }
                 chbuf[chlen++] = (char)ch;
 
@@ -74,7 +74,7 @@ WSPACE      [ \t\r]+
                 }
                 if (ch == '\n') {
                     parser_perror("quote is not closed!\n");
-                    return R_ERROR;
+                    return RT_ERROR;
                 }
             }
             yylval.str = strdup(chbuf);
@@ -114,7 +114,7 @@ WSPACE      [ \t\r]+
 
 .               {
                     parser_perror("unknown character!!\n");
-                    return R_ERROR;
+                    return RT_ERROR;
                 }
 %%
 

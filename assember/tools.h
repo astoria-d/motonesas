@@ -18,6 +18,6 @@ void dlist_remove (struct dlist* node) ;
 #define TRUE 1
 #define FALSE 0
 
-#define R_OK 0
-#define R_ERROR -1
+#define RT_OK 0
+#define RT_ERROR -1
 

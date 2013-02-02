@@ -323,6 +323,6 @@ int parsermain(FILE* fp) {
 int yyerror(const char* s) {
     parser_perror(s, NULL);
     //return value is discarded..
-    return R_OK;
+    return RT_OK;
 }
 
