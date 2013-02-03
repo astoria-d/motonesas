@@ -120,7 +120,7 @@ DIR_CHK_FUNC(segment) {
     if (param_type != DIR_PARAM_LITERAL)
         return FALSE;
 
-#warning add segment here.
+    set_segment(str);
     return TRUE;
 }
 

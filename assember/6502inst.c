@@ -54,8 +54,8 @@ struct inst_node {
 static struct inst_node * inst_srch [ NUM_ALPHA ] ;
 
 
-static unsigned short current_pc;
 unsigned short get_current_pc(void);
+FILE * get_current_file(void);
 
 static int inst_tbl_init(void) {
     int index = 0;
@@ -359,11 +359,15 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
 int write_inst(const char* mnemonic, int addr_mode, int num) {
     int len;
     char opcode[3];
+    FILE* fp;
+
     len = encode_inst(mnemonic, addr_mode, num, opcode);
     if (len == 0) 
         return FALSE;
 
     deb_print_inst(mnemonic, addr_mode, num);
+    fp = get_current_file();
+    fwrite(opcode, len, 1, fp);
     move_current_pc(len);
 
     return TRUE;
@@ -380,6 +384,7 @@ static void deb_print_str(const char* str) {
 }
 
 void write_str(const char* str) {
+    fwrite(str, strlen(str) + 1, 1, get_current_file());
     deb_print_str(str);
 }
 
@@ -391,6 +396,8 @@ static void deb_print_word(int num) {
 }
 
 void write_word_data(int num) {
+    short word = num & 0xFFFF;
+    fwrite(&word, 2, 1, get_current_file());
     deb_print_word(num);
 }
 
@@ -401,6 +408,8 @@ static void deb_print_byte(int num) {
 }
 
 void write_byte_data(int num) {
+    char byte = num & 0xFFFF;
+    fwrite(&byte, 1, 1, get_current_file());
     deb_print_byte(num);
 }
 
@@ -411,17 +420,8 @@ void deb_print_nl(void) {
 }
 
 
-unsigned short get_current_pc(void) {
-    return current_pc;
-}
-
-void move_current_pc(short offset) {
-    current_pc += offset;
-}
-
 int inst_encode_init() {
     inst_tbl_init(); 
-    current_pc = 0; 
     return TRUE;
 }
 

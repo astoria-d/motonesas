@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include "tools.h"
 
+
+static char* out_fname = NULL;
+
 int init_datas(void) {
     int ret;
     ret = inst_encode_init();
@@ -34,7 +37,6 @@ int main (int argc, char** argv) {
     int ret;
     int ch;
     extern int optind;
-    char* out_fname = NULL;
     int need_free_out = FALSE;
 
     dprint("main...\n");
@@ -106,7 +108,14 @@ int main (int argc, char** argv) {
     dprint("outfile: %s\n", out_fname);
 
     //lexmain(fp);
-    parsermain(fp);
+    ret = parsermain(fp);
+    //yyparse returns 0 if accepted.
+    if (ret != 0) {
+        fprintf(stderr, "parser failure...\n");
+        return RT_ERROR;
+    }
+
+    finalize_segment();
 
 done:
 
@@ -118,5 +127,9 @@ done:
 
     destroy_datas(); 
     return RT_OK;
+}
+
+const char* get_out_fname(void) {
+    return out_fname;
 }
 
