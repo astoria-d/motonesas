@@ -66,7 +66,7 @@ $0!~/#/ {
     if (line >= 100)
         line = 0
 }
-' < 6502-opcode-table > all-inst.asm
+' < opcode-6502 > all-inst.asm
 
 ./motonesas all-inst.asm
 #./motonesas sample1.asm
