@@ -376,6 +376,7 @@ int write_inst(const char* mnemonic, int addr_mode, int num) {
 static void deb_print_str(const char* str) {
 #ifdef DEB_PRINT
     int i, len = strlen (str);
+    deb_print_addr_feed();
     for (i = 0; i < len; i++) {
         printf("%c ", *(str + i));
     }
@@ -384,8 +385,10 @@ static void deb_print_str(const char* str) {
 }
 
 void write_str(const char* str) {
-    fwrite(str, strlen(str) + 1, 1, get_current_file());
+    int len = strlen(str) + 1;
+    fwrite(str, len, 1, get_current_file());
     deb_print_str(str);
+    move_current_pc(len);
 }
 
 static void deb_print_word(int num) {
@@ -399,6 +402,7 @@ void write_word_data(int num) {
     short word = num & 0xFFFF;
     fwrite(&word, 2, 1, get_current_file());
     deb_print_word(num);
+    move_current_pc(2);
 }
 
 static void deb_print_byte(int num) {
@@ -411,6 +415,13 @@ void write_byte_data(int num) {
     char byte = num & 0xFFFF;
     fwrite(&byte, 1, 1, get_current_file());
     deb_print_byte(num);
+    move_current_pc(1);
+}
+
+void deb_print_addr_feed(void) {
+#ifdef DEB_PRINT
+    printf("%04x:                    ", get_current_pc());
+#endif /*DEB_PRINT*/
 }
 
 void deb_print_nl(void) {

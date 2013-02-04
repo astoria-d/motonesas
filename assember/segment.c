@@ -18,6 +18,7 @@ struct seginfo {
     struct symmap *sym_table;
     struct symmap *unresolved_symbol;
     unsigned short current_pc;
+    unsigned short segsize;
 
     char* out_fname;
     FILE *fp;
@@ -45,6 +46,7 @@ int add_symbol (const char* symbol) {
         psym->symbol = strdup(symbol);
         psym->addr = get_current_pc();
         pseg->sym_table = psym;
+        pseg->unresolved_symbol = NULL;
 
         dprint("%s:\n", symbol);
         return TRUE;
@@ -86,9 +88,23 @@ static void clear_symtbl_list(struct symmap* psym) {
     } 
 }
 
-static void add_unresolved_ref(void) {
-    dprint("unresolvvd!!!\n");
-#warning need to add unresolved symbol handling...
+void add_unresolved_ref(const char* symbol) {
+    struct seginfo *pseg = get_current_seginfo();
+    struct symmap *unres_sym;
+
+    dprint("unresolved symbol: %s\n", symbol);
+    unres_sym = malloc(sizeof (struct symmap));
+    dlist_init(&unres_sym->list);
+    unres_sym->symbol = strdup(symbol);
+    unres_sym->addr = pseg->current_pc;
+
+    if (pseg->unresolved_symbol == NULL) {
+        pseg->unresolved_symbol = unres_sym;
+    }
+    else {
+        dlist_add_tail(pseg->unresolved_symbol, &unres_sym->list);
+    }
+
 }
 
 
@@ -107,13 +123,7 @@ int addr_lookup(const char* symbol, unsigned short* return_addr) {
         }
         psym = (struct symmap*) psym->list.next;
     } 
-    if (!found) {
-        add_unresolved_ref();
-    }
     return found;
-}
-
-int resolve_sym(void) {
 }
 
 static struct seginfo * lookup_segment(const char* segname) {
@@ -202,9 +212,6 @@ struct seginfo * get_current_seginfo(void) {
     return current_seg;
 }
 
-unsigned short get_current_symtbl(void) {
-}
-
 unsigned short get_current_pc(void) {
     return get_current_seginfo()->current_pc;
 }
@@ -219,9 +226,13 @@ void clear_seglist(void) {
         pseg = (struct seginfo*) pseg->list.next;
 
         dlist_remove((struct dlist*)pp);
-        //must be clear resolve tbl.
+        //clear symbol table
         if (pp->sym_table)
             clear_symtbl_list(pp->sym_table);
+
+        //clear unresolved symbol table.
+        if (pp->unresolved_symbol)
+            clear_symtbl_list(pp->unresolved_symbol);
 
         //dprint("free segmeng %s\n", pp->name);
         if (pp->name)
@@ -253,6 +264,7 @@ int finalize_segment(void) {
     if (out == NULL)
         return FALSE;
 
+
     pseg = segment_list;
     while (pseg != NULL) {
         FILE* fp = pseg->fp;
@@ -268,11 +280,47 @@ int finalize_segment(void) {
             fclose(out);
             return FALSE;
         }
+
+        //resolve unresolved symbol in the segment.
+        current_seg = pseg;
+        if (pseg->unresolved_symbol) {
+            struct symmap *unres = pseg->unresolved_symbol;
+            unsigned short addr;
+            int ret;
+            do {
+                struct symmap *free_sym = unres;
+
+                ret = addr_lookup(unres->symbol, &addr);
+                if (ret) {
+                    if (addr - unres->addr > 0xFF) {
+                        fclose(out);
+                        return FALSE;
+                    }
+                    dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
+                            unres->addr, unres->symbol, addr, addr - unres->addr);
+                    fseek(fp, addr - unres->addr, SEEK_SET);
+                    fwrite(&addr, 2, 1, fp);
+                }
+                unres = (struct symmap*) unres->list.next;
+
+                if (ret) {
+                    //remove symbol from unresolved list.
+                    ret = dlist_remove(&free_sym->list);
+                    if (!ret) {
+                        //if the free_sym is the last node, then clean up the list top.
+                        pseg->unresolved_symbol = NULL;
+                    }
+                    clear_symtbl(free_sym);
+                }
+            } while (unres);
+        }
         
         //move to top position
         rewind(fp);
+        //copy xxxx.o.segXXX file to xxx.o file.
         fread(buf, size, 1, fp);
         fwrite(buf, size, 1, out);
+        pseg->segsize = size;
 
         pseg = (struct seginfo*) pseg->list.next;
     }

@@ -53,6 +53,7 @@ DIR_CHK_ENTRY(word),
 
 FILE * get_current_file(void);
 void move_current_pc(short offset);
+void add_unresolved_ref(const char* symbol);
 
 int directive_check (const char* directive, int param_type, const char* str, int num) {
     const char* pdir;
@@ -191,7 +192,12 @@ DIR_CHK_FUNC(word) {
          * .word    symbol
          * */
         unsigned short addr = 0;
-        addr_lookup(str, &addr); 
+        int ret;
+        ret = addr_lookup(str, &addr); 
+        if (!ret) {
+            add_unresolved_ref(str);
+        }
+        deb_print_addr_feed();
         write_word_data(addr);
         deb_print_nl(); 
         return TRUE;

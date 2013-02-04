@@ -115,7 +115,11 @@ int main (int argc, char** argv) {
         return RT_ERROR;
     }
 
-    finalize_segment();
+    ret = finalize_segment();
+    if (!ret) {
+        fprintf(stderr, "segment error\n");
+        return RT_ERROR;
+    }
 
 done:
 

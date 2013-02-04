@@ -14,6 +14,8 @@ extern FILE *yyin;
 char* cur_inst;
 int dir_data_size = 0;
 
+void add_unresolved_ref(const char* symbol);
+
 #if 1
 #define dprint(...)    
 #endif
@@ -94,6 +96,8 @@ directive
             dir_data_size = 2;
 
         free($<str>2);
+
+        deb_print_addr_feed();
     } num_chain {
         dprint("\n");
         deb_print_nl(); 
@@ -216,8 +220,10 @@ inst_param
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
         if (addr_lookup($<str>1, &addr)) 
             num = get_rel_addr(addr);
-        else
+        else {
+            add_unresolved_ref($<str>1);
             num = addr;
+        }
 
         if (!write_inst(cur_inst, param, num)) {
             parser_perror("invalid operand\n", $<str>3);
@@ -285,8 +291,10 @@ inst_param
         dprint("%s\n", $<str>1);
         if (addr_lookup($<str>1, &addr)) 
             num = get_rel_addr(addr);
-        else
+        else {
+            add_unresolved_ref($<str>1);
             num = addr;
+        }
 
         if (!write_inst(cur_inst, PARAM_NUM, num)) {
             parser_perror("invalid operand\n", $<str>1);

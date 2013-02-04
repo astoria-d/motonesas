@@ -49,16 +49,20 @@ void dlist_add_tail (struct dlist* dest, struct dlist* node) {
     dlist_add_next(tail_node, node);
 }
 
-void dlist_remove (struct dlist* node) {
+int dlist_remove (struct dlist* node) {
     struct dlist* next_node = node->next;
     struct dlist* prev_node = node->prev;
 
+    int ret = FALSE;
     if (next_node) {
+        ret = TRUE; 
         next_node->prev = prev_node;
     }
     if (prev_node) {
+        ret = TRUE; 
         prev_node->next = next_node;
     }
+    return ret;
 }
 
 
