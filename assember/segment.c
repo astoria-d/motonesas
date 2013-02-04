@@ -86,7 +86,7 @@ static void clear_symtbl_list(struct symmap* psym) {
     } 
 }
 
-static void add_unresolved_lookup(void) {
+static void add_unresolved_ref(void) {
     dprint("unresolvvd!!!\n");
 #warning need to add unresolved symbol handling...
 }
@@ -108,7 +108,7 @@ int addr_lookup(const char* symbol, unsigned short* return_addr) {
         psym = (struct symmap*) psym->list.next;
     } 
     if (!found) {
-        add_unresolved_lookup();
+        add_unresolved_ref();
     }
     return found;
 }
