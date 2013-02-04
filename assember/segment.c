@@ -153,7 +153,7 @@ static struct seginfo *new_segment (const char* segname) {
         segment_list = seg; 
     }
     else {
-        dlist_add_next((struct dlist*)segment_list, (struct dlist*)seg);
+        dlist_add_tail((struct dlist*)segment_list, (struct dlist*)seg);
     }
 
     //temporary segment file name <outname>.seg<segname>
@@ -260,6 +260,7 @@ int finalize_segment(void) {
         char* buf;
         int size;
 
+        dprint ("segment file: %s\n", pseg->out_fname);
         fgetpos(fp, &pos);
         size = pos.__pos;
         buf = malloc(size);

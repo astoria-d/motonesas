@@ -1,5 +1,6 @@
 #include "tools.h"
 #include "6502directive.h"
+#include <stdio.h>
 
 /**
  * supported directive:
@@ -50,6 +51,9 @@ DIR_CHK_ENTRY(word),
 
 #define DIRECTIVE_CNT   sizeof (dir_check_tbl) / sizeof (struct directive_check_func)
 
+FILE * get_current_file(void);
+void move_current_pc(short offset);
+
 int directive_check (const char* directive, int param_type, const char* str, int num) {
     const char* pdir;
     int i;
@@ -93,10 +97,28 @@ DIR_CHK_FUNC(incbin) {
      * syntax:
      * .incbin "file name"
      * */
+    const char* fname;
+    FILE *incf;
+    FILE *outf;
+    int len = 0;
+    char ch;
     if (param_type != DIR_PARAM_LITERAL)
         return FALSE;
 
-#warning add include file here!!
+    fname = str;
+    dprint("include %s\n", fname);
+    incf = fopen(fname, "r");
+    if (incf == NULL)
+        return FALSE;
+
+    outf = get_current_file();
+    while (fread(&ch, 1, 1, incf) > 0) {
+        fwrite(&ch, 1, 1, outf);
+        len++;
+    }
+    close(incf);
+    move_current_pc(len);
+
     return TRUE;
 }
 
