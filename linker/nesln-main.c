@@ -24,11 +24,11 @@ void print_usage(void) {
 }
 
 int main (int argc, char** argv) {
-    FILE* fp;
     int ret;
     int ch;
     extern int optind;
     int need_free_out = FALSE;
+    int i;
 
     dprint("main...\n");
 
@@ -40,7 +40,7 @@ int main (int argc, char** argv) {
             case 'h':
             default:
                 print_usage();
-                return 0;
+                return RT_ERROR;
         }
     }
     argc -= optind - 1;
@@ -53,22 +53,12 @@ int main (int argc, char** argv) {
         return RT_ERROR;
     }
 
-    if (argc > 1) {
-        const char* fname = argv[1];
-        fp=fopen(fname, "r");
-        if (fp == NULL) {
-            fprintf(stderr, "invalid file [");
-            fprintf(stderr, fname);
-            fprintf(stderr, "]\n");
-            return RT_ERROR;
-        }
-    }
-    else {
+    if (argc == 1) {
         print_usage();
         return RT_ERROR;
     }
 
-    if (out_fname == NULL) {
+    if (out_fname == NULL && argc == 2) {
         const char* in_fname = argv[1];
         char *p, *pp;
 
@@ -92,22 +82,33 @@ int main (int argc, char** argv) {
         ///
         strcpy(pp, ".nes");
     }
+    else if (argc > 2) {
+        out_fname = "out.nes";
+    }
     dprint("outfile: %s\n", out_fname);
 
-    if (ret != 0) {
-        fprintf(stderr, "link error...\n");
-        goto done;
+    for (i = 1; i < argc; i++) {
+        const char* fname = argv[i];
+        dprint("input file: %s\n", fname);
+
+        ret = load_object(fname);
+        if (!ret) {
+            fprintf(stderr, "link error...\n");
+            goto done;
+        }
+
     }
+
+    ret = RT_OK;
 
 done:
 
-    fclose(fp);
 
     if (need_free_out)
         free(out_fname);
 
     destroy_datas(); 
-    return RT_OK;
+    return RT_ERROR;
 }
 
 const char* get_out_fname(void) {

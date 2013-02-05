@@ -88,6 +88,7 @@ struct symbol_entry {
     char *symbol;
 };
 
+struct molfhdr * load_mh(FILE* fp);
 
 #endif /*__obj_format_h__*/
 

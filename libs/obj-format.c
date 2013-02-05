@@ -166,3 +166,28 @@ int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start) {
     return FALSE;
 }
 
+struct molfhdr * load_mh(FILE* fp) {
+    int len;
+    struct molfhdr* ret = malloc(sizeof(struct molfhdr));
+
+    if (ret == NULL)
+        return NULL;
+
+    len = fread(ret, 1, sizeof(struct molfhdr), fp);
+    if (len != sizeof(struct molfhdr)) {
+        free (ret);
+        return NULL;
+    }
+
+    //magic number check
+    if (!MOL_CHK(ret)) {
+        free (ret);
+        return FALSE;
+    }
+
+    return ret;
+}
+
+
+
+

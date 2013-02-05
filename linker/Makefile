@@ -1,7 +1,7 @@
 
 BIN=motonesln
 
-OBJS=nesln-main.o 
+OBJS=nesln-main.o linker.o
 
 
 LIBS=-L../libs -lmotones
@@ -12,19 +12,14 @@ CFLAGS=-g $(INCLUDE)
 
 all:	$(BIN)
 
-$(BIN): $(OBJS)
+$(BIN): $(OBJS) ../libs
 	gcc -o $(BIN) $(OBJS) $(LIBS)
 
 .c.o: 
 	gcc $(CFLAGS) -c $<
 
-test:
-	make
-	./test.sh
-
 clean:
 	-rm $(OBJS) $(BIN) \
-		*.o
 
 
 
