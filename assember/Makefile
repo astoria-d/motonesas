@@ -8,7 +8,9 @@ OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o \
 #noyywrap option...
 LIBS=
 
-CFLAGS=-g
+INCLUDE=-I../include
+
+CFLAGS=-g $(INCLUDE)
 
 all:	$(BIN)
 
