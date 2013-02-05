@@ -56,6 +56,7 @@ static struct inst_node * inst_srch [ NUM_ALPHA ] ;
 
 unsigned short get_current_pc(void);
 FILE * get_current_file(void);
+void deb_print_addr_feed(void);
 
 static int inst_tbl_init(void) {
     int index = 0;

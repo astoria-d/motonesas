@@ -23,6 +23,16 @@ void slist_add_tail (struct slist* dest, struct slist* node) {
     pp->next = node;
 }
 
+int slist_count (struct slist* head) {
+    int ret = 0;
+    struct slist* p = head;
+    while( p != NULL ) {
+        p = p->next;
+        ret++;
+    }
+    return ret;
+}
+
 void dlist_init (struct dlist* node) {
     node->next = node->prev = NULL;
 }
@@ -65,4 +75,14 @@ int dlist_remove (struct dlist* node) {
     return ret;
 }
 
+
+int dlist_count (struct dlist* head) {
+    int ret = 0;
+    struct dlist* p = head;
+    while( p != NULL ) {
+        p = p->next;
+        ret++;
+    }
+    return ret;
+}
 

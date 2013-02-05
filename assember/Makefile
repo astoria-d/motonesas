@@ -2,7 +2,7 @@
 BIN=motonesas
 
 OBJS=nesas-main.o tools.o nesas.tab.o nesas.yy.o \
-	 6502inst.o 6502directive.o segment.o
+	 6502inst.o 6502directive.o segment.o obj-format.o
 
 #LIBS=-lfl
 #noyywrap option...
@@ -34,7 +34,7 @@ test:
 
 clean:
 	-rm $(OBJS) $(BIN) nesas.yy.c nesas.tab.c nesas.tab.h \
-		opcode nesas.output all-inst.asm
+		opcode nesas.output all-inst.asm *.o
 
 
 

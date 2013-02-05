@@ -1,4 +1,7 @@
 
+#ifndef __6502inst_h__
+#define __6502inst_h__
+
 #define PARAM_NON     0x00
 #define PARAM_NUM     0x01
 #define PARAM_IMMED     0x02
@@ -7,4 +10,6 @@
 #define PARAM_INDIR             0x40
 #define PARAM_INDEX_INDIR     0x80
 #define PARAM_INDIR_INDEX     0x100
+
+#endif /*__6502inst_h__*/
 

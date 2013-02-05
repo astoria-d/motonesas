@@ -4,25 +4,11 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "tools.h"
+#include "segment.h"
 
-struct symmap {
-    struct dlist list;
-    char *symbol;
-    unsigned short addr;
-};
-
-
-struct seginfo {
-    struct dlist list;
-    char* name;
-    struct symmap *sym_table;
-    struct symmap *unresolved_symbol;
-    unsigned short current_pc;
-    unsigned short segsize;
-
-    char* out_fname;
-    FILE *fp;
-};
+#if 0
+#define dprint(...)    
+#endif
 
 /*
  * these three must be removed.
@@ -34,6 +20,9 @@ static struct seginfo *current_seg;
 unsigned short get_current_pc(void);
 struct seginfo * get_current_seginfo(void);
 const char* get_out_fname(void);
+void molf_header_create(FILE* fp, unsigned short seg_cnt);
+void seg_header_create(FILE* fp, struct seginfo* seg);
+int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start);
 
 int add_symbol (const char* symbol) {
     struct symmap *psym, *pp;
@@ -259,22 +248,33 @@ FILE * get_current_file(void) {
 int finalize_segment(void) {
     struct seginfo* pseg;
     FILE* out;
+    int seg_cnt;
 
-    out = fopen(get_out_fname(), "w");
+    out = fopen(get_out_fname(), "w+");
     if (out == NULL)
         return FALSE;
 
+    //object file creation.
+    seg_cnt = dlist_count(&segment_list->list);
+    molf_header_create(out, seg_cnt);
+
+    //write segment header
+    pseg = segment_list;
+    while (pseg != NULL) {
+        seg_header_create(out, pseg);
+        pseg = (struct seginfo*) pseg->list.next;
+    }
 
     pseg = segment_list;
     while (pseg != NULL) {
         FILE* fp = pseg->fp;
-        fpos_t pos;
+        long pos;
         char* buf;
         int size;
 
-        dprint ("segment file: %s\n", pseg->out_fname);
-        fgetpos(fp, &pos);
-        size = pos.__pos;
+        //dprint ("segment file: %s\n", pseg->out_fname);
+        pos = ftell(fp);
+        size = pos;
         buf = malloc(size);
         if (buf == NULL) {
             fclose(out);
@@ -293,11 +293,12 @@ int finalize_segment(void) {
                 ret = addr_lookup(unres->symbol, &addr);
                 if (ret) {
                     if (addr - unres->addr > 0xFF) {
+                        //address offset is too far!
                         fclose(out);
                         return FALSE;
                     }
-                    dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
-                            unres->addr, unres->symbol, addr, addr - unres->addr);
+                    /*dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
+                            unres->addr, unres->symbol, addr, addr - unres->addr);*/
                     fseek(fp, addr - unres->addr, SEEK_SET);
                     fwrite(&addr, 2, 1, fp);
                 }
@@ -317,10 +318,19 @@ int finalize_segment(void) {
         
         //move to top position
         rewind(fp);
+        //get current pos in out file.
+        pos = ftell(out);
+
         //copy xxxx.o.segXXX file to xxx.o file.
         fread(buf, size, 1, fp);
         fwrite(buf, size, 1, out);
         pseg->segsize = size;
+
+        //set header position.
+        if (!set_seg_header_pos(out, pseg, pos)) {
+            fclose(out);
+            return FALSE;
+        }
 
         pseg = (struct seginfo*) pseg->list.next;
     }
