@@ -1,7 +1,7 @@
 
 BIN=libmotones.a
 
-OBJS=tools.o
+OBJS=tools.o obj-format.o
 
 INCLUDE=-I../include
 

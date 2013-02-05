@@ -2,7 +2,7 @@
 BIN=motonesas
 
 OBJS=nesas-main.o nesas.tab.o nesas.yy.o \
-	 6502inst.o 6502directive.o segment.o obj-format.o
+	 6502inst.o 6502directive.o segment.o
 
 #LIBS=-lfl
 #noyywrap option...

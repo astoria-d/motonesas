@@ -25,7 +25,6 @@ void print_usage(void) {
 
 int main (int argc, char** argv) {
     FILE* fp;
-    int need_close=0;
     int ret;
     int ch;
     extern int optind;
@@ -48,6 +47,7 @@ int main (int argc, char** argv) {
     argv += optind - 1;
 
 
+    ret = init_datas();
     if (!ret) {
         fprintf(stderr, "initialization failure...\n");
         return RT_ERROR;
@@ -62,22 +62,18 @@ int main (int argc, char** argv) {
             fprintf(stderr, "]\n");
             return RT_ERROR;
         }
-        need_close = 1;
     }
-    else
-        fp=stdin;
+    else {
+        print_usage();
+        return RT_ERROR;
+    }
 
     if (out_fname == NULL) {
         const char* in_fname = argv[1];
         char *p, *pp;
 
-        if (fp == stdin) {
-            print_usage();
-           goto done;
-        }
-
         need_free_out = TRUE;
-        out_fname = (char*) malloc ( strlen(in_fname) + 2 + 1);
+        out_fname = (char*) malloc ( strlen(in_fname) + 4 + 1);
         strcpy(out_fname, in_fname);
 
         //search for fname extention.
@@ -94,18 +90,21 @@ int main (int argc, char** argv) {
             pp = p + strlen(p) - 1;
         }
         ///
-        strcpy(pp, ".o");
+        strcpy(pp, ".nes");
     }
     dprint("outfile: %s\n", out_fname);
 
     if (ret != 0) {
-        fprintf(stderr, "parser failure...\n");
-        return RT_ERROR;
+        fprintf(stderr, "link error...\n");
+        goto done;
     }
 
 done:
 
     fclose(fp);
+
+    if (need_free_out)
+        free(out_fname);
 
     destroy_datas(); 
     return RT_OK;
