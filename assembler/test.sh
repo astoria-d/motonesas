@@ -69,6 +69,8 @@ $0!~/#/ {
 ' < opcode-6502 > all-inst.asm
 
 ./motonesas all-inst.asm
-#./motonesas sample1.asm
+./motonesas sample1.asm
+./motonesas sample1-short.asm
+./motonesas sample2.asm
 
 

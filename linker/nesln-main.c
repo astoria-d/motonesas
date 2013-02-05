@@ -9,23 +9,15 @@ static char* out_fname = NULL;
 
 int init_datas(void) {
     int ret;
-    ret = inst_encode_init();
-    if (!ret)
-        return ret;
-    ret = init_segment();
-    if (!ret)
-        return ret;
 
     return TRUE;
 }
 
 void destroy_datas(void) {
-    inst_encode_terminate();
-    destroy_segment();
 }
 
 void print_usage(void) {
-    printf("motonesas [option...] [asmfile]\n");
+    printf("motonesln [option...] [.o files]\n");
     printf("Options:\n");
     printf("\t-h: print this page.\n");
     printf("\t-o [output]: output object file.\n");
@@ -56,7 +48,6 @@ int main (int argc, char** argv) {
     argv += optind - 1;
 
 
-    ret = init_datas();
     if (!ret) {
         fprintf(stderr, "initialization failure...\n");
         return RT_ERROR;
@@ -107,27 +98,14 @@ int main (int argc, char** argv) {
     }
     dprint("outfile: %s\n", out_fname);
 
-    //lexmain(fp);
-    ret = parsermain(fp);
-    //yyparse returns 0 if accepted.
     if (ret != 0) {
         fprintf(stderr, "parser failure...\n");
         return RT_ERROR;
     }
 
-    ret = finalize_segment();
-    if (!ret) {
-        fprintf(stderr, "segment error\n");
-        return RT_ERROR;
-    }
-
 done:
 
-    if (need_close)
-        fclose(fp);
-
-    if (need_free_out)
-        free(out_fname);
+    fclose(fp);
 
     destroy_datas(); 
     return RT_OK;
