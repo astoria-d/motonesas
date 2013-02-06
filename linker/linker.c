@@ -58,7 +58,7 @@ int load_object (const char* obj_fname) {
         //
         //segh_start += sgh->seg_data_size;
 
-        free(sgh);
+        clear_segh(sgh);
     }
 
     return TRUE;

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "segment.h"
 #include "obj-format.h"
+#include "symtool.h"
 
 
 #define WORK_BUF_SIZE   1024
@@ -254,10 +255,8 @@ struct seghdr* load_segh(FILE* fp) {
     fread(&tmp, 2, 1, fp);
     sgh->symbol_cnt = tmp;
     //get sym entry
-    if (sgh->symbol_cnt == 0) {
-        sgh->symbols = NULL;
-    }
-    else {
+    sgh->symbols = NULL;
+    if (sgh->symbol_cnt > 0) {
         int i;
         sgh->symbols = NULL;
         for (i = 0; i < sgh->symbol_cnt; i++) {
@@ -282,10 +281,8 @@ struct seghdr* load_segh(FILE* fp) {
     fread(&tmp, 2, 1, fp);
     sgh->unresolve_cnt = tmp;
     //get unres sym entry
-    if (sgh->unresolve_cnt == 0) {
-        sgh->unresolved_symbols = NULL;
-    }
-    else {
+    sgh->unresolved_symbols = NULL;
+    if (sgh->unresolve_cnt > 0) {
         int i;
         sgh->unresolved_symbols = NULL;
         for (i = 0; i < sgh->unresolve_cnt; i++) {
@@ -309,3 +306,15 @@ struct seghdr* load_segh(FILE* fp) {
     return sgh;
 }
 
+void clear_segh (struct seghdr *sgh) {
+    if (sgh->seg_name)
+        free (sgh->seg_name);
+
+    if (sgh->symbols) {
+        clear_symtbl_list(sgh->symbols);
+    }
+    if (sgh->unresolved_symbols) {
+        clear_symtbl_list(sgh->unresolved_symbols);
+    }
+
+}

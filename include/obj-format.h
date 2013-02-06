@@ -70,6 +70,7 @@ segment header:
 -header size
 -segment data position
 -segment data size
+-segment name
 -num of symbols
  *repeat:
  -symbol name (null terminated)
@@ -99,6 +100,8 @@ void store_string(FILE* fp, const char* str);
 
 struct molfhdr * load_mh(FILE* fp);
 struct seghdr* load_segh(FILE* fp);
+
+void clear_segh (struct seghdr *sgh);
 
 #endif /*__obj_format_h__*/
 
