@@ -1,6 +1,9 @@
 #ifndef __obj_format_h__
 #define __obj_format_h__
 
+#include "tools.h"
+#include "segment.h"
+
 /*
 MOLF object file format
 (MOLF is named after author's name and parody of ELF...)
@@ -86,14 +89,9 @@ struct seghdr {
     unsigned short seg_data_size;
     char *seg_name;
     short symbol_cnt;
-    struct symbol_entry *symbols;
+    struct symmap *symbols;
     short unresolve_cnt;
-    struct symbol_entry *unresolved_symbols;
-};
-
-struct symbol_entry {
-    unsigned short addr;
-    char *symbol;
+    struct symmap *unresolved_symbols;
 };
 
 char* load_string(FILE* fp);

@@ -43,6 +43,7 @@ int load_object (const char* obj_fname) {
         struct seghdr *sgh;
         struct seginfo *pseg;
 
+        //fseek(fp, segh_start, SEEK_SET);
 
         sgh = load_segh(fp);
 

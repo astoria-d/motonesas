@@ -82,8 +82,8 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
         fwrite(&tmp, 2, 1, fp);
 
         while (sym) {
-            fwrite(&sym->addr, 2, 1, fp);
             store_string(fp, sym->symbol);
+            fwrite(&sym->addr, 2, 1, fp);
 
             sym = (struct symmap*) sym->list.next;
         }
@@ -101,8 +101,8 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
         fwrite(&tmp, 2, 1, fp);
 
         while (sym) {
-            fwrite(&sym->addr, 2, 1, fp);
             store_string(fp, sym->symbol);
+            fwrite(&sym->addr, 2, 1, fp);
 
             sym = (struct symmap*) sym->list.next;
         }
@@ -259,14 +259,22 @@ struct seghdr* load_segh(FILE* fp) {
     }
     else {
         int i;
+        sgh->symbols = NULL;
         for (i = 0; i < sgh->symbol_cnt; i++) {
-#warning must create symbol chain!!!
-            sgh->symbols = malloc(sizeof(struct symbol_entry));
-            fread(&tmp, 2, 1, fp);
-            sgh->symbols->addr = tmp;
-            sgh->symbols->symbol = load_string(fp);
+            struct symmap *sm;
 
-            dprint("  symbol: %s\n", sgh->symbols->symbol);
+            sm = malloc(sizeof(struct symmap));
+            dlist_init(&sm->list);
+
+            sm->symbol = load_string(fp);
+            fread(&tmp, 2, 1, fp);
+            sm->addr = tmp;
+
+            if (sgh->symbols == NULL)
+                sgh->symbols = sm;
+            else
+                dlist_add_tail(sgh->symbols, &sm->list);
+            dprint("  symbol: %s\n", sm->symbol);
         }
     }
 
@@ -279,14 +287,22 @@ struct seghdr* load_segh(FILE* fp) {
     }
     else {
         int i;
+        sgh->unresolved_symbols = NULL;
         for (i = 0; i < sgh->unresolve_cnt; i++) {
-#warning must create symbol chain!!!
-            sgh->unresolved_symbols = malloc(sizeof(struct symbol_entry));
-            fread(&tmp, 2, 1, fp);
-            sgh->unresolved_symbols->addr = tmp;
-            sgh->unresolved_symbols->symbol = load_string(fp);
+            struct symmap *sm;
 
-            dprint("  unresolved: %s\n", sgh->unresolved_symbols->symbol);
+            sm = malloc(sizeof(struct symmap));
+            dlist_init(&sm->list);
+
+            sm->symbol = load_string(fp);
+            fread(&tmp, 2, 1, fp);
+            sm->addr = tmp;
+
+            if (sgh->unresolved_symbols == NULL)
+                sgh->unresolved_symbols = sm;
+            else
+                dlist_add_tail(sgh->unresolved_symbols, &sm->list);
+            dprint("  unresolved: %s\n", sm->symbol);
         }
     }
 
