@@ -42,7 +42,6 @@ void molf_header_create(FILE* fp, unsigned short seg_cnt) {
 
 /*
  * write segh data (except for unresolved symbol list)
- * unresolved symbol list must be set in the seg_header_unresolve_create function
  *
  * */
 void seg_header_create(FILE* fp, struct seginfo* seg) {

@@ -247,39 +247,15 @@ FILE * get_current_file(void) {
 
 int finalize_segment(void) {
     struct seginfo* pseg;
-    FILE* out;
+    FILE* obj_file;
     int seg_cnt;
 
-    out = fopen(get_out_fname(), "w+");
-    if (out == NULL)
-        return FALSE;
-
-    //object file creation.
-    seg_cnt = dlist_count(&segment_list->list);
-    molf_header_create(out, seg_cnt);
-
-    //write segment header
-    pseg = segment_list;
-    while (pseg != NULL) {
-        seg_header_create(out, pseg);
-        pseg = (struct seginfo*) pseg->list.next;
-    }
-
+    ///resolve unresolved symbol first.
     pseg = segment_list;
     while (pseg != NULL) {
         FILE* fp = pseg->fp;
-        long pos;
-        char* buf;
-        int size;
 
         dprint ("segment file: %s\n", pseg->out_fname);
-        pos = ftell(fp);
-        size = pos;
-        buf = malloc(size);
-        if (buf == NULL) {
-            fclose(out);
-            return FALSE;
-        }
 
         //resolve unresolved symbol in the segment.
         current_seg = pseg;
@@ -294,7 +270,6 @@ int finalize_segment(void) {
                 if (ret) {
                     if (addr - unres->addr > 0xFF) {
                         //address offset is too far!
-                        fclose(out);
                         return FALSE;
                     }
                     dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
@@ -316,25 +291,63 @@ int finalize_segment(void) {
             } while (unres);
         }
         
+        pseg = (struct seginfo*) pseg->list.next;
+    }
+
+
+    obj_file = fopen(get_out_fname(), "w+");
+    if (obj_file == NULL)
+        return FALSE;
+
+    //object file creation.
+    seg_cnt = dlist_count(&segment_list->list);
+    molf_header_create(obj_file, seg_cnt);
+
+    //write segment header
+    pseg = segment_list;
+    while (pseg != NULL) {
+        seg_header_create(obj_file, pseg);
+        pseg = (struct seginfo*) pseg->list.next;
+    }
+
+    //copy setment file.
+    pseg = segment_list;
+    while (pseg != NULL) {
+        FILE* fp = pseg->fp;
+        char* buf;
+        long pos;
+        int size;
+
+        fseek(fp, 0, SEEK_END);
+        size = ftell(fp);
+
+        buf = malloc(size);
+        if (buf == NULL) {
+            fclose(obj_file);
+            return FALSE;
+        }
+
         //move to top position
         rewind(fp);
-        //get current pos in out file.
-        pos = ftell(out);
+        //get current pos in obj_file file.
+        pos = ftell(obj_file);
 
         //copy xxxx.o.segXXX file to xxx.o file.
         fread(buf, size, 1, fp);
-        fwrite(buf, size, 1, out);
+        fwrite(buf, size, 1, obj_file);
         pseg->segsize = size;
 
         //set header position.
-        if (!set_seg_header_pos(out, pseg, pos)) {
-            fclose(out);
+        if (!set_seg_header_pos(obj_file, pseg, pos)) {
+            fclose(obj_file);
             return FALSE;
         }
 
         pseg = (struct seginfo*) pseg->list.next;
     }
-    fclose(out);
+
+    fclose(obj_file);
+
     return TRUE;
 }
 
