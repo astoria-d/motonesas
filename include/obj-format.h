@@ -27,6 +27,14 @@ Segment data n
 */
 
 /*
+ * MOLF string format:
+ * */
+struct m_string {
+    unsigned short len;
+    char* str;
+};
+
+/*
  * MOLF header format
  * */
 struct molfhdr {
@@ -88,7 +96,11 @@ struct symbol_entry {
     char *symbol;
 };
 
+char* load_string(FILE* fp);
+void store_string(FILE* fp, const char* str);
+
 struct molfhdr * load_mh(FILE* fp);
+struct seghdr* load_segh(FILE* fp);
 
 #endif /*__obj_format_h__*/
 

@@ -7,6 +7,28 @@
 
 #define WORK_BUF_SIZE   1024
 
+void store_string(FILE* fp, const char* str) {
+    short len;
+
+    len = strlen (str);
+    fwrite(&len, 2, 1, fp);
+    while (len-- > 0)
+        fwrite(str++, 1, 1, fp);
+    fwrite(str++, 1, 1, fp);
+}
+
+char* load_string(FILE* fp) {
+    short len;
+    char* str;
+    int i = 0;
+    fread(&len, 2, 1, fp);
+    str = malloc (len + 1);
+    while (len-- > 0)
+        fread(str + i++, 1, 1, fp);
+    fread(str + i++, 1, 1, fp);
+    return str;
+}
+
 void molf_header_create(FILE* fp, unsigned short seg_cnt) {
     struct molfhdr mh = {
         {
@@ -15,9 +37,14 @@ void molf_header_create(FILE* fp, unsigned short seg_cnt) {
         seg_cnt, 
         sizeof(struct molfhdr)};
 
-    fwrite (&mh, sizeof(struct molfhdr), 1, fp);
+    fwrite (&mh, 1, sizeof(struct molfhdr), fp);
 }
 
+/*
+ * write segh data (except for unresolved symbol list)
+ * unresolved symbol list must be set in the seg_header_unresolve_create function
+ *
+ * */
 void seg_header_create(FILE* fp, struct seginfo* seg) {
     long header_start, back_pos;
     short tmp;
@@ -38,10 +65,12 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
 
     //seg_name
     if (seg->name) {
-        fwrite(seg->name, strlen(seg->name) + 1, 1, fp);
+        store_string(fp, seg->name);
     }
     else {
+        short l = 0;
         char c = '\0';
+        fwrite(&l, 2, 1, fp);
         fwrite(&c, 1, 1, fp);
     }
     //dprint("segmeng: %s\n", seg->name);
@@ -55,7 +84,7 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
 
         while (sym) {
             fwrite(&sym->addr, 2, 1, fp);
-            fwrite(sym->symbol, strlen(sym->symbol) + 1, 1, fp);
+            store_string(fp, sym->symbol);
 
             sym = (struct symmap*) sym->list.next;
         }
@@ -74,7 +103,7 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
 
         while (sym) {
             fwrite(&sym->addr, 2, 1, fp);
-            fwrite(sym->symbol, strlen(sym->symbol) + 1, 1, fp);
+            store_string(fp, sym->symbol);
 
             sym = (struct symmap*) sym->list.next;
         }
@@ -97,6 +126,10 @@ void seg_header_create(FILE* fp, struct seginfo* seg) {
     
 }
 
+/*
+ * complete sgment header info
+ *
+ * */
 int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start) {
     long back_pos;
     struct molfhdr molh; 
@@ -120,23 +153,22 @@ int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start) {
         char ch;
         int j;
         int seg_found = FALSE;
+        short tmp;
+
+        ///search for the segment.
         if (fseek(fp, hdr_strt, SEEK_SET)) {
             fseek(fp, back_pos, SEEK_SET);
             return FALSE;
         }
 
-        fread(&segh, sizeof(short) * 3, 1, fp);
+        fread(&tmp, 2 , 1, fp);
+        segh.segh_size = tmp;
+        fread(&tmp, 2 , 1, fp);
+        segh.seg_start_pos = tmp;
+        fread(&tmp, 2 , 1, fp);
+        segh.seg_data_size = tmp;
 
-        segh.seg_name = malloc(WORK_BUF_SIZE);
-        j = 0;
-        while(fread(&ch, 1, 1, fp) > 0) {
-            if (j >= WORK_BUF_SIZE)
-                segh.seg_name = realloc(segh.seg_name, WORK_BUF_SIZE);
-            segh.seg_name[j++] = ch;
-            if (ch == '\0') {
-                break;
-            }
-        }
+        segh.seg_name = load_string(fp);
 
         if (seg->name && !strcmp(segh.seg_name, seg->name)) {
             seg_found = TRUE;
@@ -146,6 +178,8 @@ int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start) {
         }
 
         if (seg_found) {
+            ///write the segment info..
+            //
             fseek(fp, hdr_strt + 2, SEEK_SET);
             //fill seg_start_pos
             fwrite(&start, 2, 1, fp);
@@ -189,5 +223,74 @@ struct molfhdr * load_mh(FILE* fp) {
 }
 
 
+struct seghdr* load_segh(FILE* fp) {
+    struct seghdr* sgh;
+    short segh_size;
+    int len;
+    short tmp;
 
+    sgh = malloc(sizeof(struct seghdr));
+    if (!sgh)
+        return NULL;
+
+    fread(&tmp, 2, 1, fp);
+    sgh->segh_size = tmp;
+
+    fread(&tmp, 2, 1, fp);
+    sgh->seg_start_pos = tmp;
+
+    fread(&tmp, 2, 1, fp);
+    sgh->seg_data_size = tmp;
+
+    //get seg_name
+    sgh->seg_name = load_string(fp);
+    if (!sgh->seg_name) {
+        free(sgh);
+        return NULL;
+    }
+    
+    dprint("segment: %s\n", sgh->seg_name);
+
+    //get sym cnt
+    fread(&tmp, 2, 1, fp);
+    sgh->symbol_cnt = tmp;
+    //get sym entry
+    if (sgh->symbol_cnt == 0) {
+        sgh->symbols = NULL;
+    }
+    else {
+        int i;
+        for (i = 0; i < sgh->symbol_cnt; i++) {
+#warning must create symbol chain!!!
+            sgh->symbols = malloc(sizeof(struct symbol_entry));
+            fread(&tmp, 2, 1, fp);
+            sgh->symbols->addr = tmp;
+            sgh->symbols->symbol = load_string(fp);
+
+            dprint("  symbol: %s\n", sgh->symbols->symbol);
+        }
+    }
+
+    //get unresolved sym cnt
+    fread(&tmp, 2, 1, fp);
+    sgh->unresolve_cnt = tmp;
+    //get unres sym entry
+    if (sgh->unresolve_cnt == 0) {
+        sgh->unresolved_symbols = NULL;
+    }
+    else {
+        int i;
+        for (i = 0; i < sgh->unresolve_cnt; i++) {
+#warning must create symbol chain!!!
+            sgh->unresolved_symbols = malloc(sizeof(struct symbol_entry));
+            fread(&tmp, 2, 1, fp);
+            sgh->unresolved_symbols->addr = tmp;
+            sgh->unresolved_symbols->symbol = load_string(fp);
+
+            dprint("  unresolved: %s\n", sgh->unresolved_symbols->symbol);
+        }
+    }
+
+    return sgh;
+}
 

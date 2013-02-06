@@ -272,7 +272,7 @@ int finalize_segment(void) {
         char* buf;
         int size;
 
-        //dprint ("segment file: %s\n", pseg->out_fname);
+        dprint ("segment file: %s\n", pseg->out_fname);
         pos = ftell(fp);
         size = pos;
         buf = malloc(size);
@@ -297,8 +297,8 @@ int finalize_segment(void) {
                         fclose(out);
                         return FALSE;
                     }
-                    /*dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
-                            unres->addr, unres->symbol, addr, addr - unres->addr);*/
+                    dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
+                            unres->addr, unres->symbol, addr, addr - unres->addr);/**/
                     fseek(fp, addr - unres->addr, SEEK_SET);
                     fwrite(&addr, 2, 1, fp);
                 }

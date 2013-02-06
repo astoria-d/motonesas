@@ -14,7 +14,7 @@ CFLAGS=-g $(INCLUDE)
 
 all:	$(BIN)
 
-$(BIN): $(OBJS)
+$(BIN): $(OBJS) ../libs
 	gcc -o $(BIN) $(OBJS) $(LIBS)
 
 .c.o: 

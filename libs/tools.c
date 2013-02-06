@@ -1,5 +1,7 @@
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "tools.h"
 
 void dprint(char* s, char* arg1, unsigned int arg2, unsigned int arg3, 
@@ -80,4 +82,5 @@ int dlist_count (struct dlist* head) {
     }
     return ret;
 }
+
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 
 #generate test instruction code
@@ -72,5 +72,7 @@ $0!~/#/ {
 ./motonesas sample1.asm
 ./motonesas sample1-short.asm
 ./motonesas sample2.asm
+
+cp sample*.o all-inst.o ../linker
 
 

@@ -1,6 +1,8 @@
 #ifndef __tools_h__
 #define __tools_h__
 
+#include <stdio.h>
+
 struct slist {
     struct slist *next;
 } ;

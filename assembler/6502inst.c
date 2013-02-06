@@ -358,7 +358,7 @@ static void deb_print_inst(const char* mnemonic, int addr_mode, int num) {
 }
 
 int write_inst(const char* mnemonic, int addr_mode, int num) {
-    int len;
+    int len, i;
     char opcode[3];
     FILE* fp;
 
@@ -368,7 +368,9 @@ int write_inst(const char* mnemonic, int addr_mode, int num) {
 
     deb_print_inst(mnemonic, addr_mode, num);
     fp = get_current_file();
-    fwrite(opcode, len, 1, fp);
+    i = 0;
+    while (i < len)
+        fwrite(opcode + i++, 1, 1, fp);
     move_current_pc(len);
 
     return TRUE;
@@ -387,7 +389,9 @@ static void deb_print_str(const char* str) {
 
 void write_str(const char* str) {
     int len = strlen(str) + 1;
-    fwrite(str, len, 1, get_current_file());
+    FILE* fp = get_current_file();
+    while (len-- > 0)
+        fwrite(str++, 1, 1, fp);
     deb_print_str(str);
     move_current_pc(len);
 }
