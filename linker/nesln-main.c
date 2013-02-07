@@ -5,15 +5,24 @@
 #include "tools.h"
 
 
+int init_linker(void);
+void destroy_linker(void);
+
 static char* out_fname = NULL;
 
 int init_datas(void) {
     int ret;
 
+    ret = init_linker();
+    if (!ret) {
+        fprintf(stderr, "linker initalization failed...\n");
+        return FALSE;
+    }
     return TRUE;
 }
 
 void destroy_datas(void) {
+    destroy_linker();
 }
 
 void print_usage(void) {

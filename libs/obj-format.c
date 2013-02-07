@@ -249,7 +249,7 @@ struct seghdr* load_segh(FILE* fp) {
         return NULL;
     }
     
-    dprint("segment: %s\n", sgh->seg_name);
+    //dprint("segment: %s\n", sgh->seg_name);
 
     //get sym cnt
     fread(&tmp, 2, 1, fp);
@@ -273,7 +273,7 @@ struct seghdr* load_segh(FILE* fp) {
                 sgh->symbols = sm;
             else
                 dlist_add_tail(sgh->symbols, &sm->list);
-            dprint("  symbol: %s\n", sm->symbol);
+            //dprint("  symbol: %s\n", sm->symbol);
         }
     }
 
@@ -299,7 +299,7 @@ struct seghdr* load_segh(FILE* fp) {
                 sgh->unresolved_symbols = sm;
             else
                 dlist_add_tail(sgh->unresolved_symbols, &sm->list);
-            dprint("  unresolved: %s\n", sm->symbol);
+            //dprint("  unresolved: %s\n", sm->symbol);
         }
     }
 

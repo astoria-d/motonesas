@@ -190,11 +190,11 @@ unsigned short get_current_pc(void) {
     return get_current_seginfo()->current_pc;
 }
 
-void clear_seglist(void) {
+static void clear_seglist(struct seginfo* sg_head) {
     struct seginfo* pseg;
 
     dprint("clear_seglist.\n");
-    pseg = segment_list;
+    pseg = sg_head;
     while (pseg != NULL) {
         struct seginfo* pp = pseg;
         pseg = (struct seginfo*) pseg->list.next;
@@ -342,7 +342,7 @@ int init_segment(void) {
 }
 
 void destroy_segment(void) {
-    clear_seglist(); 
+    clear_seglist(segment_list); 
 }
 
 
