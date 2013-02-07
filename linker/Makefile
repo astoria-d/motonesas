@@ -1,7 +1,7 @@
 
 BIN=motonesln
 
-OBJS=nesln-main.o linker.o
+OBJS=nesln-main.o linker.o lmap.o
 
 
 LIBS=-L../libs -lmotones

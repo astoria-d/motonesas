@@ -52,7 +52,7 @@ static void clear_seglist(struct seginfo* sg_head) {
                     closed = TRUE;
                     break;
                 }
-                cl = cl->l.next;
+                cl = (struct closed_file*)cl->l.next;
             }
             if (!closed) {
                 cl = malloc (sizeof(struct closed_file));
@@ -72,13 +72,13 @@ static void clear_seglist(struct seginfo* sg_head) {
     wk_list = closed_list;
     while (wk_list != NULL) {
         struct closed_file *pp = wk_list;
-        wk_list = wk_list->l.next;
+        wk_list = (struct closed_file*)wk_list->l.next;
         free(pp);
     }
 }
 
 
-struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char* fname) {
+static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char* fname) {
 
     struct seginfo * pseg = malloc (sizeof(struct seginfo));
 
@@ -149,6 +149,14 @@ int load_object (const char* obj_fname) {
         clear_segh(sgh);
     }
 
+    return TRUE;
+}
+
+int sort_segment(void) {
+    return TRUE;
+}
+
+int link_segment(const char* out_name) {
     return TRUE;
 }
 

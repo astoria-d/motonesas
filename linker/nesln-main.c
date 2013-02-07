@@ -8,7 +8,10 @@
 int init_linker(void);
 void destroy_linker(void);
 
-static char* out_fname = NULL;
+int sort_segment(void);
+int link_segment(const char* out_name);
+int init_lmap(void);
+void destory_lmap(void);
 
 int init_datas(void) {
     int ret;
@@ -18,15 +21,21 @@ int init_datas(void) {
         fprintf(stderr, "linker initalization failed...\n");
         return FALSE;
     }
+    ret = init_lmap();
+    if (!ret) {
+        fprintf(stderr, "linker config init failed...\n");
+        return FALSE;
+    }
     return TRUE;
 }
 
 void destroy_datas(void) {
     destroy_linker();
+    destory_lmap();
 }
 
 void print_usage(void) {
-    printf("motonesln [option...] [.o files]\n");
+    printf("motonesln -l linkmap [option...] [.o files]\n");
     printf("Options:\n");
     printf("\t-h: print this page.\n");
     printf("\t-o [output]: output object file.\n");
@@ -38,11 +47,16 @@ int main (int argc, char** argv) {
     extern int optind;
     int need_free_out = FALSE;
     int i;
+    char* out_fname = NULL;
+    char* lmap_fname = NULL;
 
     dprint("main...\n");
 
-    while( (ch = getopt(argc, argv, "ho:")) != -1) {
+    while( (ch = getopt(argc, argv, "ho:l:")) != -1) {
         switch (ch) {
+            case 'l':
+                lmap_fname = optarg;
+                break;
             case 'o':
                 out_fname = optarg;
                 break;
@@ -62,8 +76,14 @@ int main (int argc, char** argv) {
         return RT_ERROR;
     }
 
-    if (argc == 1) {
+    if (argc == 1 || lmap_fname == NULL) {
         print_usage();
+        return RT_ERROR;
+    }
+
+    ret = load_lmap(lmap_fname);
+    if (!ret) {
+        fprintf(stderr, "link map load error...\n");
         return RT_ERROR;
     }
 
@@ -102,10 +122,17 @@ int main (int argc, char** argv) {
 
         ret = load_object(fname);
         if (!ret) {
-            fprintf(stderr, "link error...\n");
+            fprintf(stderr, "load object error...\n");
             goto done;
         }
+    }
 
+    //linker main work here.
+    sort_segment();
+    ret = link_segment(out_fname);
+    if (!ret) {
+        fprintf(stderr, "link error...\n");
+        goto done;
     }
 
     ret = RT_OK;
@@ -118,9 +145,5 @@ done:
 
     destroy_datas(); 
     return RT_ERROR;
-}
-
-const char* get_out_fname(void) {
-    return out_fname;
 }
 
