@@ -9,7 +9,7 @@ int init_linker(void);
 void destroy_linker(void);
 
 int sort_segment(void);
-int link_segment(const char* out_name);
+int link_segment(FILE* outf);
 int init_lmap(void);
 void destory_lmap(void);
 
@@ -49,6 +49,7 @@ int main (int argc, char** argv) {
     int i;
     char* out_fname = NULL;
     char* lmap_fname = NULL;
+    FILE *outfp;
 
     dprint("main...\n");
 
@@ -128,14 +129,21 @@ int main (int argc, char** argv) {
     }
 
     //linker main work here.
-    ret = link_segment(out_fname);
+    outfp = fopen (out_fname, "w");
+    if (outfp == NULL) {
+        fprintf(stderr, "out file error...\n", out_fname);
+        goto done;
+    }
+    ret = link_segment(outfp);
     if (!ret) {
+        fclose(outfp);
         fprintf(stderr, "link error...\n");
         goto done;
     }
 
     dprint("link succeeded\n");
     ret = RT_OK;
+    fclose(outfp);
 
 done:
 

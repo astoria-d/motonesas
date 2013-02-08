@@ -6,6 +6,7 @@
 #include "segment.h"
 
 #define DEFAULT_SEGMENT     "<default>"
+#define BUF_SIZE        100
 
 static struct seginfo* seg_list;
 
@@ -35,7 +36,7 @@ static void clear_seglist(struct seginfo* sg_head) {
         if (pp->unresolved_symbol)
             clear_symtbl_list(pp->unresolved_symbol);
 
-        dprint("free segmeng %s: %s\n", pp->out_fname, pp->name);
+        //dprint("free segmeng %s: %s\n", pp->out_fname, pp->name);
         if (pp->name)
             free(pp->name);
 
@@ -94,14 +95,13 @@ static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char
     else
         pseg->name = strdup(sgh->seg_name);
 
-    dprint("segment: %s\n", pseg->name);
+    //dprint("segment: %s\n", pseg->name);
     //mv symtable
     pseg->sym_table = sgh->symbols;
     sgh->symbols = NULL;
     pseg->unresolved_symbol = sgh->unresolved_symbols;
     sgh->unresolved_symbols = NULL;
 
-    ///current pc is set to segment start address.
     ret = lookup_lmap(pseg->name, &start, &size);
     if (!ret) {
         fprintf(stderr, "invalid segment [%s]\n", pseg->name);
@@ -109,7 +109,9 @@ static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char
         free (pseg);
         return NULL;
     }
-    pseg->current_pc = start;
+    pseg->current_pc = 0;
+    pseg->segaddr = start;
+    pseg->segpos = sgh->seg_start_pos;
     pseg->segsize = sgh->seg_data_size;
 
     pseg->out_fname = strdup(fname);
@@ -119,6 +121,7 @@ static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char
 }
 
 static int add_segment_list(struct seginfo *pseg) {
+    //dprint("add_seg: %s\n", pseg->name);
     if (seg_list == NULL)
         seg_list  = pseg;
     else 
@@ -135,16 +138,19 @@ static int add_segment_list(struct seginfo *pseg) {
 
         node = seg_list;
         while(node != NULL) {
-            //now current_pc is pointing at the segment start address.
-            if (node->current_pc > start) {
+            //dprint("%s: segaddr:%04x, start:%04x\n", node->name, node->segaddr, start);
+            if (node->segaddr > start) {
                 break;
             }
             node = (struct seginfo*) node->list.next;
         }
 
         //sort segment by the start address
-        if (node)
+        if (node) {
             dlist_add_prev(&node->list, &pseg->list);
+            if (node == seg_list)
+                seg_list = pseg;
+        }
         else
             dlist_add_tail(&seg_list->list, &pseg->list);
     }
@@ -209,7 +215,49 @@ int load_object (const char* obj_fname) {
     return TRUE;
 }
 
-int link_segment(const char* out_name) {
+static int resolve_symbol(const char* symname) {
+    ////not worked yet...
+    return FALSE;
+}
+
+int link_segment(FILE* outf) {
+    struct seginfo* pseg;
+    pseg = seg_list;
+    while (pseg != NULL) {
+        FILE *objfp = pseg->fp;
+        int ret;
+        char * buf;
+        int read_size = 0;
+        int len, total_len;
+
+        dprint("link seg: %s %d byte @ %04x from %04x\n", pseg->name, 
+                pseg->segsize, pseg->segaddr, pseg->segpos);
+
+        ret = fseek(objfp, pseg->segpos, SEEK_SET);
+        if (ret)
+            return FALSE;
+
+        buf = malloc(BUF_SIZE);
+        if (!buf)
+            return FALSE;
+        len = total_len = 0;
+        read_size = pseg->segsize < BUF_SIZE ? pseg->segsize : BUF_SIZE ;
+        while ( (len = fread(buf, 1, read_size, objfp)) > 0) {
+            fwrite(buf, 1, read_size, outf);
+            total_len += len;
+            read_size = pseg->segsize - total_len < BUF_SIZE ? 
+                pseg->segsize - total_len : BUF_SIZE ;
+
+            if ( total_len == pseg->segsize)
+                break;
+        }
+        free(buf);
+        if ( total_len != pseg->segsize ) {
+            return FALSE;
+        }
+
+        pseg = (struct seginfo*) pseg->list.next;
+    }
     return TRUE;
 }
 

@@ -17,6 +17,8 @@ struct seginfo {
     struct symmap *sym_table;
     struct symmap *unresolved_symbol;
     unsigned short current_pc;
+    unsigned short segaddr;
+    unsigned short segpos;
     unsigned short segsize;
 
     char* out_fname;
