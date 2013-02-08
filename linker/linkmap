@@ -1,6 +1,11 @@
+#iNES format:
+#--NES header   (dummy address)
+#--PRG-ROM
+#--CHR-ROM      (dummy address)
+#
 #segment name,  start address,  size
 HEADER          0x0000          0x0010
 STARTUP         0x8000          0x7FFA
 VECINFO         0xfffa          0x0006
-CHARS           0x0000          0x2000
 <default>       0x8000          0x7ffa
+CHARS           0xffff          0x2000
