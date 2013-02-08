@@ -15,6 +15,7 @@ char* cur_inst;
 int dir_data_size = 0;
 
 void add_unresolved_ref(const char* symbol);
+int get_abs_addr(unsigned short abs_addr);
 
 #if 1
 #define dprint(...)    
@@ -205,6 +206,12 @@ inst_param
         unsigned short addr = 0;
         int num = 0;
 
+
+        /*
+           ex)
+            lda     palettes, x
+         */
+         
         //second parameter is either X or Y.
         if (strcasecmp($<str>3, "X") && strcasecmp($<str>3, "Y")) {
             parser_perror("invalid parameter\n", $<str>3);
@@ -218,11 +225,13 @@ inst_param
         param = PARAM_NUM;
         ch = toupper(*$<str>3);
         param |= (ch == 'X' ? PARAM_INDEX_X : PARAM_INDEX_Y);
-        if (addr_lookup($<str>1, &addr)) 
-            num = get_rel_addr(addr);
+        if (addr_lookup($<str>1, &addr))  {
+            //reladdr from the next instruction.
+            num = get_rel_addr(addr) - 2;
+        }
         else {
             add_unresolved_ref($<str>1);
-            num = addr;
+            num = 0xFFFF;
         }
 
         if (!write_inst(cur_inst, param, num)) {
@@ -288,12 +297,28 @@ inst_param
         unsigned short addr = 0;
         int num = 0;
 
+        /*
+         ex)
+        mainloop:
+         jmp mainloop
+         bne mainloop
+         */
+
         dprint("%s\n", $<str>1);
-        if (addr_lookup($<str>1, &addr)) 
-            num = get_rel_addr(addr);
+        if (addr_lookup($<str>1, &addr)) { 
+            //set operand assocating with the instruction's addressing mode
+            //(relative or absolute).
+            if (!strcasecmp(cur_inst, "JMP") || !strcasecmp(cur_inst, "JSR")) {
+                num = get_abs_addr(addr);
+            }
+            else {
+                //reladdr from the next instruction.
+                num = get_rel_addr(addr) - 2;
+            }
+        }
         else {
             add_unresolved_ref($<str>1);
-            num = addr;
+            num = 0xFFFF;
         }
 
         if (!write_inst(cur_inst, PARAM_NUM, num)) {

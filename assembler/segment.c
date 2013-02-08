@@ -24,6 +24,7 @@ const char* get_out_fname(void);
 void molf_header_create(FILE* fp, unsigned short seg_cnt);
 void seg_header_create(FILE* fp, struct seginfo* seg);
 int set_seg_header_pos(FILE* fp, struct seginfo* seg, unsigned short start);
+int get_abs_addr(unsigned short abs_addr);
 
 int add_symbol (const char* symbol) {
     struct symmap *psym, *pp;
@@ -70,7 +71,9 @@ void add_unresolved_ref(const char* symbol) {
     unres_sym = malloc(sizeof (struct symmap));
     dlist_init(&unres_sym->list);
     unres_sym->symbol = strdup(symbol);
-    unres_sym->addr = pseg->current_pc;
+    //current_pc points to the current instruction.
+    //referece is next to the pc
+    unres_sym->addr = pseg->current_pc + 1;
 
     if (pseg->unresolved_symbol == NULL) {
         pseg->unresolved_symbol = unres_sym;
@@ -91,6 +94,8 @@ int addr_lookup(const char* symbol, unsigned short* return_addr) {
         struct symmap* pp = psym;
 
         if (!strcmp(symbol, psym->symbol)) {
+            dprint("addr_lookup %s found %04x, current:%08x\n", psym->symbol, 
+                    psym->addr, get_current_pc());
             found = TRUE;
             *return_addr = psym->addr;
             break;
@@ -257,9 +262,10 @@ int finalize_segment(void) {
                         //address offset is too far!
                         return FALSE;
                     }
-                    /*dprint("symbol ref at %04x to %s(%04x) resolved, %04x.\n", 
-                            unres->addr, unres->symbol, addr, addr - unres->addr);*/
-                    fseek(fp, addr - unres->addr, SEEK_SET);
+                    addr = get_abs_addr(addr);
+                    dprint("symbol ref at %04x to %s resolved, %04x.\n", 
+                            unres->addr, unres->symbol, addr);/**/
+                    fseek(fp, unres->addr, SEEK_SET);
                     fwrite(&addr, 2, 1, fp);
                 }
                 unres = (struct symmap*) unres->list.next;

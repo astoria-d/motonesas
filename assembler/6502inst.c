@@ -17,6 +17,8 @@ struct instmap {
 #define NUM_ALPHA 'Z' - 'A' + 1
 #define ALPHA_INDEX(ch) ch - 'A'
 
+#define ROM_START   0x8000
+
 /* 
  * 6502 instructions
  * adressing mode        instruction length
@@ -126,6 +128,10 @@ int check_inst(const char* mnemonic) {
 
 int get_rel_addr(unsigned short abs_addr) {
     return (int) abs_addr - get_current_pc() ;
+}
+
+int get_abs_addr(unsigned short abs_addr) {
+    return (int) abs_addr + ROM_START ;
 }
 
 /*
@@ -388,11 +394,13 @@ static void deb_print_str(const char* str) {
 }
 
 void write_str(const char* str) {
+    //dprint("write_str:%s\n", str);
     int len = strlen(str) + 1;
     FILE* fp = get_current_file();
+    char* p = str;
     while (len-- > 0)
         fwrite(str++, 1, 1, fp);
-    deb_print_str(str);
+    deb_print_str(p);
     move_current_pc(len);
 }
 
