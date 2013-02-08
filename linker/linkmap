@@ -1,6 +1,6 @@
 #segment name,  start address,  size
-HEADER          0x0000          0x0010 
-STARTUP         0x8000          0x1000
+HEADER          0x0000          0x0010
+STARTUP         0x8000          0x0FFA
 VECINFO         0xfffa          0x0006
 CHARS           0x0000          0x2000
-<default>       0x8000          0x1000
+<default>       0x8000          0x0ffa

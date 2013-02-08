@@ -217,12 +217,18 @@ int load_object (const char* obj_fname) {
 
 static int resolve_symbol(const char* symname) {
     ////not worked yet...
+#warning must work resove_symbol!!!
     return FALSE;
 }
 
 int link_segment(FILE* outf) {
-    struct seginfo* pseg;
-    pseg = seg_list;
+    struct seginfo* pseg, *pp;
+    unsigned short conf_addr, conf_size, pp_addr, pp_size;
+    int seg_total_size = 0;
+    char tmp = 0;
+
+    pp = pseg = seg_list;
+    pp_addr = pp_size = 0xffff;
     while (pseg != NULL) {
         FILE *objfp = pseg->fp;
         int ret;
@@ -230,8 +236,24 @@ int link_segment(FILE* outf) {
         int read_size = 0;
         int len, total_len;
 
-        dprint("link seg: %s %d byte @ %04x from %04x\n", pseg->name, 
-                pseg->segsize, pseg->segaddr, pseg->segpos);
+
+        ret = lookup_lmap(pseg->name, &conf_addr, &conf_size);
+        if (!ret) 
+            return FALSE;
+
+        if (pseg != pp && (conf_addr != pp_addr || conf_size != pp_size)) {
+            if (pp_size - seg_total_size > 0) {
+                //dprint("fill %04x\n", pp_size - seg_total_size);
+                int i = 0;
+                tmp = 0;
+                for (i = 0; i < pp_size - seg_total_size; i++)
+                    fwrite(&tmp, 1, 1, outf);
+            }
+            seg_total_size = 0;
+        }
+
+        /*dprint("link seg: %10s @ %04x, %04x byte from %04x\n", pseg->name, 
+                pseg->segaddr, pseg->segsize, pseg->segpos);*/
 
         ret = fseek(objfp, pseg->segpos, SEEK_SET);
         if (ret)
@@ -255,9 +277,21 @@ int link_segment(FILE* outf) {
         if ( total_len != pseg->segsize ) {
             return FALSE;
         }
+        seg_total_size += total_len;
 
+        pp = pseg;
+        pp_addr = conf_addr;
+        pp_size = conf_size;
         pseg = (struct seginfo*) pseg->list.next;
     }
+    if (pp_size - seg_total_size > 0) {
+        int i = 0;
+        //dprint("fill %04x\n", pp_size - seg_total_size);
+        tmp = 0;
+        for (i = 0; i < pp_size - seg_total_size; i++)
+            fwrite(&tmp, 1, 1, outf);
+    }
+
     return TRUE;
 }
 
