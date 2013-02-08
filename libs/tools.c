@@ -45,6 +45,17 @@ void dlist_add_next (struct dlist* dest, struct dlist* node) {
     node->next = next_node;
 }
 
+void dlist_add_prev (struct dlist* dest, struct dlist* node) {
+    struct dlist* prev_node = dest->prev;
+
+    if (prev_node) {
+        prev_node->next = node;
+    }
+    dest->prev = node;
+    node->prev = prev_node;
+    node->next = dest;
+}
+
 void dlist_add_tail (struct dlist* dest, struct dlist* node) {
     struct dlist* next_node = dest->next;
     struct dlist* tail_node = dest;

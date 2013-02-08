@@ -14,6 +14,24 @@ struct lmap_entry {
 
 static struct lmap_entry * lmap_list;
 
+
+int lookup_lmap(const char* segname, unsigned short *start, unsigned short *size) {
+    struct lmap_entry *lm;
+    //dprint("lookup_lmap %s\n", segname);
+
+    lm = lmap_list;
+    while (lm != NULL) {
+        //dprint(">>: %s\n", lm->seg_name);
+        if (!strcmp(segname, lm->seg_name)) {
+            *start = lm->start;
+            *size = lm->size;
+            return TRUE;
+        }
+        lm = (struct lmap_entry*)lm->list.next;
+    }
+    return FALSE;
+}
+
 int load_lmap(const char* fname) {
     FILE* fp;
     char ch;
@@ -72,12 +90,12 @@ int load_lmap(const char* fname) {
             free (buf);
             return FALSE;
         }
-        dprint("seg: %s %04x, %04x\n", seg_name, start, size);
+        //dprint("seg: %s %04x, %04x\n", seg_name, start, size);
 
         //free (buf);
         lm = malloc(sizeof(struct lmap_entry));
         dlist_init(&lm->list);
-        lm->seg_name = buf;
+        lm->seg_name = strdup(seg_name);
         lm->start = start;
         lm->size = size;
 

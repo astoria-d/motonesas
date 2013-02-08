@@ -128,13 +128,13 @@ int main (int argc, char** argv) {
     }
 
     //linker main work here.
-    sort_segment();
     ret = link_segment(out_fname);
     if (!ret) {
         fprintf(stderr, "link error...\n");
         goto done;
     }
 
+    dprint("link succeeded\n");
     ret = RT_OK;
 
 done:

@@ -5,7 +5,11 @@
 #include "obj-format.h"
 #include "segment.h"
 
+#define DEFAULT_SEGMENT     "<default>"
+
 static struct seginfo* seg_list;
+
+int lookup_lmap(const char* segname, unsigned short *start, unsigned short *size);
 
 static void clear_seglist(struct seginfo* sg_head) {
     struct seginfo* pseg;
@@ -16,7 +20,7 @@ static void clear_seglist(struct seginfo* sg_head) {
     } * closed_list = NULL;
     struct closed_file *wk_list;
 
-    dprint("clear_seglist.\n");
+    //dprint("clear_seglist.\n");
     pseg = sg_head;
     while (pseg != NULL) {
         struct seginfo* pp = pseg;
@@ -41,7 +45,7 @@ static void clear_seglist(struct seginfo* sg_head) {
             closed_list = malloc (sizeof(struct closed_file));
             closed_list->l.next = NULL;
             closed_list->fp = pp->fp;
-            dprint("file close %s\n", pp->out_fname);
+            //dprint("file close %s\n", pp->out_fname);
             fclose(pp->fp);
         }
         else {
@@ -59,7 +63,7 @@ static void clear_seglist(struct seginfo* sg_head) {
                 cl->l.next = NULL;
                 cl->fp = pp->fp;
                 slist_add_tail(&closed_list->l, &cl->l);
-                dprint("file close %s\n", pp->out_fname);
+                //dprint("file close %s\n", pp->out_fname);
                 fclose(pp->fp);
             }
         }
@@ -79,19 +83,33 @@ static void clear_seglist(struct seginfo* sg_head) {
 
 
 static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char* fname) {
-
     struct seginfo * pseg = malloc (sizeof(struct seginfo));
+    unsigned short start, size;
+    int ret;
 
-    dprint("segment: %s\n", sgh->seg_name);
     dlist_init (&pseg->list);
-    pseg->name = strdup(sgh->seg_name);
+
+    if (sgh->seg_name[0] == '\0')
+        pseg->name = strdup(DEFAULT_SEGMENT);
+    else
+        pseg->name = strdup(sgh->seg_name);
+
+    dprint("segment: %s\n", pseg->name);
     //mv symtable
     pseg->sym_table = sgh->symbols;
     sgh->symbols = NULL;
     pseg->unresolved_symbol = sgh->unresolved_symbols;
     sgh->unresolved_symbols = NULL;
 
-    pseg->current_pc = 0;
+    ///current pc is set to segment start address.
+    ret = lookup_lmap(pseg->name, &start, &size);
+    if (!ret) {
+        fprintf(stderr, "invalid segment [%s]\n", pseg->name);
+        free (pseg->name);
+        free (pseg);
+        return NULL;
+    }
+    pseg->current_pc = start;
     pseg->segsize = sgh->seg_data_size;
 
     pseg->out_fname = strdup(fname);
@@ -100,11 +118,45 @@ static struct seginfo * segh2segi (struct seghdr *sgh, FILE* objfile, const char
     return pseg;
 }
 
+static int add_segment_list(struct seginfo *pseg) {
+    if (seg_list == NULL)
+        seg_list  = pseg;
+    else 
+    {
+        int ret;
+        unsigned short start, size;
+        struct seginfo* node;
+
+        ret = lookup_lmap(pseg->name, &start, &size);
+        if (!ret) {
+            fprintf(stderr, "invalid segment [%s]\n", pseg->name);
+            return FALSE;
+        }
+
+        node = seg_list;
+        while(node != NULL) {
+            //now current_pc is pointing at the segment start address.
+            if (node->current_pc > start) {
+                break;
+            }
+            node = (struct seginfo*) node->list.next;
+        }
+
+        //sort segment by the start address
+        if (node)
+            dlist_add_prev(&node->list, &pseg->list);
+        else
+            dlist_add_tail(&seg_list->list, &pseg->list);
+    }
+    return TRUE;
+}
+
 int load_object (const char* obj_fname) {
     FILE* fp;
     struct molfhdr* molh;
     int segh_start;
     int i, seg_cnt;
+    int ret;
 
     fp=fopen(obj_fname, "r");
     if (fp == NULL) {
@@ -139,20 +191,21 @@ int load_object (const char* obj_fname) {
         }
 
         pseg = segh2segi(sgh, fp, obj_fname);
-        if (seg_list == NULL)
-            seg_list  = pseg;
-        else 
-            dlist_add_tail(&seg_list->list, &pseg->list);
+        if (!pseg) {
+            clear_segh(sgh);
+            return FALSE;
+        }
+        ret = add_segment_list(pseg);
+        if (!ret) {
+            clear_segh(sgh);
+            return FALSE;
+        }
         
         //segh_start += sgh->seg_data_size;
 
         clear_segh(sgh);
     }
 
-    return TRUE;
-}
-
-int sort_segment(void) {
     return TRUE;
 }
 
