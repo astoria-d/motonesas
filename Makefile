@@ -14,5 +14,3 @@ clean:
 		make -C $$dir clean; \
 	done
 
-
-
