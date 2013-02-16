@@ -94,8 +94,11 @@ int addr_lookup(const char* symbol, unsigned short* return_addr) {
         struct symmap* pp = psym;
 
         if (!strcmp(symbol, psym->symbol)) {
+            /*
             dprint("addr_lookup %s found %04x, current:%08x\n", psym->symbol, 
                     psym->addr, get_current_pc());
+            */
+
             found = TRUE;
             *return_addr = psym->addr;
             break;
@@ -198,7 +201,7 @@ unsigned short get_current_pc(void) {
 static void clear_seglist(struct seginfo* sg_head) {
     struct seginfo* pseg;
 
-    dprint("clear_seglist.\n");
+    //dprint("clear_seglist.\n");
     pseg = sg_head;
     while (pseg != NULL) {
         struct seginfo* pp = pseg;
@@ -263,8 +266,10 @@ int finalize_segment(void) {
                         return FALSE;
                     }
                     addr = get_abs_addr(addr);
+                    /*
                     dprint("symbol ref at %04x to %s resolved, %04x.\n", 
-                            unres->addr, unres->symbol, addr);/**/
+                            unres->addr, unres->symbol, addr);
+                    */
                     fseek(fp, unres->addr, SEEK_SET);
                     fwrite(&addr, 2, 1, fp);
                 }

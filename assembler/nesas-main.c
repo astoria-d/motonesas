@@ -121,6 +121,8 @@ int main (int argc, char** argv) {
         return RT_ERROR;
     }
 
+    printf("assemble succeeded.\n");
+
 done:
 
     if (need_close)

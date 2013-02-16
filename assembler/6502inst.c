@@ -90,7 +90,7 @@ static int inst_tbl_init(void) {
 }
 
 static void inst_tbl_free(void) {
-    dprint ("inst_tbl_free.\n");
+    //dprint ("inst_tbl_free.\n");
 
     int index = 0;
 
@@ -397,7 +397,7 @@ void write_str(const char* str) {
     //dprint("write_str:%s\n", str);
     int len = strlen(str) + 1;
     FILE* fp = get_current_file();
-    char* p = str;
+    const char* p = str;
     while (len-- > 0)
         fwrite(str++, 1, 1, fp);
     deb_print_str(p);
@@ -441,6 +441,22 @@ void deb_print_nl(void) {
 #ifdef DEB_PRINT
     printf("\n");
 #endif /*DEB_PRINT*/
+}
+
+int is_branch_inst(const char* mnemonic) {
+    if (!strcasecmp(mnemonic, "BPL") ||
+        !strcasecmp(mnemonic, "BMI") ||
+        !strcasecmp(mnemonic, "BVC") ||
+        !strcasecmp(mnemonic, "BVS") ||
+        !strcasecmp(mnemonic, "BCC") ||
+        !strcasecmp(mnemonic, "BCS") ||
+        !strcasecmp(mnemonic, "BNE") ||
+        !strcasecmp(mnemonic, "BEQ") 
+        ) {
+        return TRUE;
+    }
+    else
+        return FALSE;
 }
 
 

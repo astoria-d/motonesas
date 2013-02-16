@@ -16,6 +16,7 @@ int dir_data_size = 0;
 
 void add_unresolved_ref(const char* symbol);
 int get_abs_addr(unsigned short abs_addr);
+int is_branch_inst(const char* mnemonic);
 
 #if 1
 #define dprint(...)    
@@ -318,7 +319,12 @@ inst_param
         }
         else {
             add_unresolved_ref($<str>1);
-            num = 0xFFFF;
+
+            ///branch instruction has 1 byte operand
+            if (is_branch_inst(cur_inst) )
+                num = 0xFF;
+            else
+                num = 0xFFFF;
         }
 
         if (!write_inst(cur_inst, PARAM_NUM, num)) {
